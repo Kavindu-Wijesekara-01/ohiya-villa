@@ -2,10 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState } from "react";
-import { Clock, MapPin, MessageCircle, Phone, Train, ArrowRight, Sparkles } from "lucide-react";
-
-const WHATSAPP_NUMBER = "94714194368";
+import { Clock, MapPin, MessageCircle, Phone, Train, ArrowRight, Sparkles, UtensilsCrossed, ShieldCheck, Calendar } from "lucide-react";
 
 const NAV_LINKS = [
   { label: "Rooms & Rates", href: "#rooms" },
@@ -48,38 +45,6 @@ const PHONES = [
 ].filter((p) => p.verified);
 
 export default function ContactAndFooter() {
-  const [form, setForm] = useState({
-    name: "",
-    checkIn: "",
-    checkOut: "",
-    guests: "1 Guest",
-  });
-
-  const update =
-    (key: keyof typeof form) =>
-    (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
-      setForm((prev) => ({ ...prev, [key]: e.target.value }));
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-
-    const lines = [
-      "Hello Susantha, I would like to enquire about staying at Dawn Breezy Bungalow, Ohiya.",
-      "",
-      `Name: ${form.name}`,
-      `Guests: ${form.guests}`,
-      form.checkIn ? `Check in: ${form.checkIn}` : "",
-      form.checkOut ? `Check out: ${form.checkOut}` : "",
-      "",
-      "Could you please confirm availability and direct booking details?",
-    ].filter(Boolean);
-
-    const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(
-      lines.join("\n")
-    )}`;
-    window.open(url, "_blank", "noopener,noreferrer");
-  };
-
   return (
     <footer
       id="contact"
@@ -168,111 +133,117 @@ export default function ContactAndFooter() {
             </p>
           </div>
 
-          {/* Right: Direct Concierge Enquiry Card */}
+          {/* Right: Boutique Highland Villa Showcase Card */}
           <div className="lg:col-span-7 order-1 lg:order-2">
-            <div className="bg-[#14231A] rounded-3xl p-6 sm:p-8 border border-[#233F2C] shadow-2xl relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-64 h-64 bg-[#C58E47]/10 rounded-full blur-3xl pointer-events-none" />
+            <div className="bg-gradient-to-br from-[#14231A] to-[#0D1812] rounded-3xl p-6 sm:p-8 lg:p-9 border border-[#233F2C] shadow-2xl relative overflow-hidden flex flex-col justify-between h-full">
+              {/* Ambient Glows */}
+              <div className="absolute top-0 right-0 w-72 h-72 bg-[#C58E47]/10 rounded-full blur-3xl pointer-events-none" />
+              <div className="absolute bottom-0 left-0 w-64 h-64 bg-[#233F2C]/30 rounded-full blur-3xl pointer-events-none" />
 
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5">
-                <div>
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#C58E47]/15 border border-[#C58E47]/30 text-[10px] font-bold uppercase tracking-wider text-[#DFB775] mb-2">
+              <div className="relative z-10">
+                {/* Visual Imagery Preview */}
+                <div className="relative w-full h-48 sm:h-56 rounded-2xl overflow-hidden border border-[#264230] mb-6 group">
+                  <Image
+                    src="/photos/outside-cool-view.jpeg"
+                    alt="Panoramic view from Dawn Breezy Bungalow in Ohiya"
+                    fill
+                    sizes="(max-width: 768px) 100vw, 600px"
+                    className="object-cover transition-transform duration-700 group-hover:scale-105"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#0E1712] via-[#0E1712]/40 to-transparent" />
+                  
+                  <div className="absolute top-3 left-3 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/50 backdrop-blur-md border border-[#C58E47]/40 text-[11px] font-semibold text-[#DFB775]">
                     <Sparkles className="w-3 h-3 text-[#C58E47]" />
-                    <span>DIRECT MOUNTAIN CONCIERGE</span>
+                    <span>1,774m Highland Altitude</span>
                   </div>
-                  <h3 className="font-serif text-2xl font-bold text-[#F2ECE1]">
-                    Send an Enquiry to Host Susantha
-                  </h3>
+
+                  <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between text-xs text-[#F2ECE1]">
+                    <div className="font-serif italic text-sm text-[#F2ECE1]/90 drop-shadow-sm">
+                      Misty pine valley mornings
+                    </div>
+                    <span className="text-[11px] text-[#A6B5AB] px-2.5 py-1 rounded-full bg-black/40 backdrop-blur-xs">
+                      Ohiya, Sri Lanka
+                    </span>
+                  </div>
                 </div>
-                <Link
-                  href="/booking"
-                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#C58E47] hover:bg-[#D4A362] text-[#0D1912] text-xs font-bold transition-all shadow-md self-start sm:self-auto hover:scale-103 active:scale-97"
-                >
-                  <span>Book Online</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </Link>
+
+                {/* Eyebrow & Title */}
+                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#C58E47]/15 border border-[#C58E47]/30 text-xs font-semibold uppercase tracking-wider text-[#DFB775] mb-3">
+                  <Sparkles className="w-3.5 h-3.5 text-[#C58E47]" />
+                  <span>Highland Boutique Sanctuary</span>
+                </div>
+
+                <h3 className="font-serif text-2xl sm:text-3xl font-normal text-[#F2ECE1] mb-3 leading-snug">
+                  Wake up above the clouds in quiet Ohiya
+                </h3>
+
+                <p className="text-sm sm:text-[15px] text-[#A6B5AB] leading-relaxed mb-6">
+                  Perched peacefully along Welimada Road, our family bungalow welcomes trekkers, couples, and traveling families. Reserve directly with host Susantha for personal highland care, flexible arrival times, and zero hidden platform charges.
+                </p>
+
+                {/* 4 Feature Badges Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-8">
+                  <div className="flex items-center gap-3 p-3.5 rounded-2xl bg-[#0E1712]/75 border border-[#233F2C]">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#17271D] text-[#C59B5F]">
+                      <Train className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <div className="text-xs font-semibold text-[#F2ECE1]">200m from Station</div>
+                      <div className="text-[11px] text-[#839388]">3 minute stroll, free luggage pickup</div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 p-3.5 rounded-2xl bg-[#0E1712]/75 border border-[#233F2C]">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#17271D] text-[#C59B5F]">
+                      <Clock className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <div className="text-xs font-semibold text-[#F2ECE1]">5:30 AM Horton Plains</div>
+                      <div className="text-[11px] text-[#839388]">On site safari car to World&apos;s End</div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 p-3.5 rounded-2xl bg-[#0E1712]/75 border border-[#233F2C]">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#17271D] text-[#C59B5F]">
+                      <UtensilsCrossed className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <div className="text-xs font-semibold text-[#F2ECE1]">Warm Ceylon Meals</div>
+                      <div className="text-[11px] text-[#839388]">Fresh home cooked dishes on request</div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 p-3.5 rounded-2xl bg-[#0E1712]/75 border border-[#233F2C]">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#17271D] text-[#C59B5F]">
+                      <ShieldCheck className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <div className="text-xs font-semibold text-[#F2ECE1]">Zero Prepayment</div>
+                      <div className="text-[11px] text-[#839388]">Pay upon arrival at the bungalow</div>
+                    </div>
+                  </div>
+                </div>
               </div>
 
-              <p className="text-xs sm:text-sm text-[#96A49B] mb-6 leading-relaxed">
-                Have questions about train pickup times, 5:30 AM Horton Plains transport, or home-cooked Ceylon meals? Send Susantha a direct message and we will respond promptly.
-              </p>
+              {/* Direct Booking & Calling CTA Block */}
+              <div className="relative z-10 pt-5 border-t border-[#233F2C] flex flex-col sm:flex-row items-center gap-3">
+                <Link
+                  href="/booking"
+                  className="w-full sm:flex-1 inline-flex items-center justify-center gap-2 py-3.5 px-6 rounded-full bg-[#C58E47] hover:bg-[#D4A362] text-[#0D1912] font-bold text-xs sm:text-sm transition-all shadow-md hover:scale-102 active:scale-98"
+                >
+                  <Calendar className="w-4 h-4" />
+                  <span>Check Live Dates &amp; Reserve Online</span>
+                  <ArrowRight className="w-4 h-4 ml-1" />
+                </Link>
 
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-semibold text-[#DFB775] mb-1.5">
-                      Your Full Name *
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      placeholder="e.g. David Smith"
-                      value={form.name}
-                      onChange={update("name")}
-                      className="w-full rounded-xl border border-[#2F4337] bg-[#0E1712] px-3.5 py-2.5 text-xs sm:text-sm text-[#F2ECE1] placeholder:text-[#617367] focus:border-[#C58E47] focus:outline-none transition-colors"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-[#DFB775] mb-1.5">
-                      Number of Guests
-                    </label>
-                    <select
-                      value={form.guests}
-                      onChange={update("guests")}
-                      className="w-full rounded-xl border border-[#2F4337] bg-[#0E1712] px-3.5 py-2.5 text-xs sm:text-sm text-[#F2ECE1] focus:border-[#C58E47] focus:outline-none transition-colors"
-                    >
-                      <option value="1 Guest">1 Guest</option>
-                      <option value="2 Guests">2 Guests</option>
-                      <option value="3 Guests">3 Guests</option>
-                      <option value="4 Guests">4 Guests</option>
-                      <option value="5+ Family or Group">5+ Family or Group</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-semibold text-[#DFB775] mb-1.5">
-                      Check in Date (Optional)
-                    </label>
-                    <input
-                      type="date"
-                      value={form.checkIn}
-                      onChange={update("checkIn")}
-                      className="w-full rounded-xl border border-[#2F4337] bg-[#0E1712] px-3.5 py-2.5 text-xs sm:text-sm text-[#F2ECE1] focus:border-[#C58E47] focus:outline-none transition-colors"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-semibold text-[#DFB775] mb-1.5">
-                      Check out Date (Optional)
-                    </label>
-                    <input
-                      type="date"
-                      value={form.checkOut}
-                      onChange={update("checkOut")}
-                      className="w-full rounded-xl border border-[#2F4337] bg-[#0E1712] px-3.5 py-2.5 text-xs sm:text-sm text-[#F2ECE1] focus:border-[#C58E47] focus:outline-none transition-colors"
-                    />
-                  </div>
-                </div>
-
-                <div className="pt-2 flex flex-col sm:flex-row items-center gap-3">
-                  <button
-                    type="submit"
-                    className="w-full sm:flex-1 py-3 px-5 rounded-full bg-[#C58E47] hover:bg-[#D4A362] text-[#0D1912] font-bold text-xs sm:text-sm transition-all shadow-md flex items-center justify-center gap-2 hover:scale-102 active:scale-98 cursor-pointer"
-                  >
-                    <MessageCircle className="w-4 h-4 fill-current" />
-                    <span>Send Message on WhatsApp</span>
-                  </button>
-
-                  <Link
-                    href="/booking"
-                    className="w-full sm:w-auto py-3 px-5 rounded-full bg-[#1F3327] hover:bg-[#284132] text-white font-semibold text-xs sm:text-sm transition-all border border-[#2E4A38] text-center hover:scale-102 active:scale-98"
-                  >
-                    Check Calendar Availability
-                  </Link>
-                </div>
-              </form>
+                <a
+                  href="tel:+94714194368"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 py-3.5 px-6 rounded-full bg-transparent hover:bg-white/5 text-[#F2ECE1] font-semibold text-xs sm:text-sm transition-all border border-[#2F4337]"
+                >
+                  <Phone className="w-4 h-4 text-[#C58E47]" />
+                  <span>Call Susantha</span>
+                </a>
+              </div>
             </div>
           </div>
         </div>
