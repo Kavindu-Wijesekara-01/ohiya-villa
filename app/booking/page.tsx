@@ -189,10 +189,22 @@ function BookingContent() {
   useEffect(() => {
     const roomParam = searchParams?.get("room");
     if (roomParam && ["double", "triple", "full"].includes(roomParam)) {
-      const found = ROOM_OPTIONS.find((r) => r.id === roomParam);
-      if (found) setSelectedRoom(found);
+      const found = roomOptions.find((r) => r.id === roomParam) || ROOM_OPTIONS.find((r) => r.id === roomParam);
+      if (found && found.id !== selectedRoom.id) {
+        setSelectedRoom(found);
+      }
     }
-  }, [searchParams]);
+  }, [searchParams, roomOptions, selectedRoom.id]);
+
+  // Handle switching rooms
+  const handleRoomSelect = (opt: RoomOption) => {
+    setSelectedRoom(opt);
+    if (typeof window !== "undefined") {
+      const url = new URL(window.location.href);
+      url.searchParams.set("room", opt.id);
+      window.history.replaceState({}, "", url.toString());
+    }
+  };
 
   // Fetch booked ranges dynamically whenever selected room changes
   const fetchBookedDates = useCallback(async (roomId: string) => {
@@ -216,7 +228,7 @@ function BookingContent() {
     if (selectedRoom?.id) {
       fetchBookedDates(selectedRoom.id);
     }
-  }, [selectedRoom, fetchBookedDates]);
+  }, [selectedRoom.id, fetchBookedDates]);
 
   // Normalize date helper
   const normalizeDate = (d: Date) => {
@@ -713,7 +725,7 @@ function BookingContent() {
                 return (
                   <div
                     key={opt.id}
-                    onClick={() => setSelectedRoom(opt)}
+                    onClick={() => handleRoomSelect(opt)}
                     className={`scroll-reveal-card cursor-pointer rounded-3xl p-4 sm:p-5 border-2 transition-all flex flex-col justify-between group ${
                       isSelected
                         ? "bg-[#FAF9F5] border-[#243D2C] shadow-lg ring-2 ring-[#243D2C]/10 scale-101"
@@ -777,6 +789,11 @@ function BookingContent() {
                 <h3 className="font-serif text-xl sm:text-2xl font-bold text-[#243D2C]">
                   Select Stay Dates ({selectedRoom.name})
                 </h3>
+                <p className="text-xs text-[#7B887E] mt-0.5">
+                  {selectedRoom.id === "double" && "Room 01 (Double) • Booking this room does not block Triple Room dates"}
+                  {selectedRoom.id === "triple" && "Room 02 (Triple) • Booking this room does not block Double Room dates"}
+                  {selectedRoom.id === "full" && "Entire Villa Exclusive • Requires all bedrooms to be vacant"}
+                </p>
               </div>
               <div className="flex items-center gap-2 text-xs">
                 {loadingBookedDates && (
