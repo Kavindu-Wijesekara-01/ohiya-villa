@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback, Suspense, useRef } from "react";
 import Image from "next/image";
-import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import ContactAndFooter from "@/components/ContactAndFooter";
@@ -21,8 +20,9 @@ import {
   Car,
   AlertCircle,
   ArrowRight,
-  ArrowLeft,
-  Check
+  Check,
+  MessageCircle,
+  X
 } from "lucide-react";
 
 interface RoomOption {
@@ -507,11 +507,53 @@ function BookingContent() {
 
   // If reservation is already confirmed, render the luxurious confirmation receipt
   if (confirmedBooking) {
+    const refCode = `#DBB-${(confirmedBooking._id || "").slice(-6).toUpperCase()}`;
+    const checkInStr = new Date(confirmedBooking.checkIn).toLocaleDateString("en-US", {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+    const checkOutStr = new Date(confirmedBooking.checkOut).toLocaleDateString("en-US", {
+      weekday: "short",
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+
+    const waText = [
+      `Hello Susantha, I have placed a reservation at Dawn Breezy Bungalow!`,
+      ``,
+      `Reference: ${refCode}`,
+      `Guest Name: ${confirmedBooking.customerName}`,
+      `Phone: ${confirmedBooking.customerPhone}`,
+      `Accommodation: ${confirmedBooking.roomName}`,
+      `Dates: ${checkInStr} to ${checkOutStr} (${confirmedBooking.nights} nights)`,
+      `Guests: ${confirmedBooking.guests}`,
+      `Total Payable: $${confirmedBooking.totalPrice}`,
+      confirmedBooking.specialRequests ? `Special Request: ${confirmedBooking.specialRequests}` : "",
+    ]
+      .filter(Boolean)
+      .join("\n");
+
+    const waUrl = `https://wa.me/94714194368?text=${encodeURIComponent(waText)}`;
+
     return (
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-12 sm:py-16">
         <div className="bg-white rounded-3xl border border-[#DFB775]/40 shadow-2xl p-6 sm:p-10 text-center relative overflow-hidden">
           {/* Top Gold Ribbon */}
           <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-[#243D2C] via-[#C58E47] to-[#243D2C]" />
+
+          {/* Close 'X' Button at top-right corner */}
+          <button
+            type="button"
+            onClick={() => setConfirmedBooking(null)}
+            className="absolute top-4 right-4 p-2 rounded-full bg-gray-100 hover:bg-gray-200 text-[#58685D] hover:text-[#243D2C] transition-colors"
+            title="Close this confirmation window"
+            aria-label="Close confirmation"
+          >
+            <X className="w-5 h-5" />
+          </button>
 
           <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto mb-4 shadow-sm">
             <CheckCircle2 className="w-9 h-9" />
@@ -531,7 +573,7 @@ function BookingContent() {
           <div className="inline-block bg-[#FAF9F6] border border-[#EAE5DC] rounded-2xl px-5 py-2.5 mb-8">
             <span className="text-xs text-[#7B887E] uppercase tracking-wider block">Reservation Reference</span>
             <span className="font-mono text-lg font-bold text-[#243D2C]">
-              #DBB-{confirmedBooking._id.slice(-6).toUpperCase()}
+              {refCode}
             </span>
           </div>
 
@@ -543,25 +585,11 @@ function BookingContent() {
             </div>
             <div className="flex justify-between py-1 border-b border-[#EAE5DC]/80">
               <span className="text-[#7B887E]">Check-in Date:</span>
-              <span className="font-bold text-[#243D2C]">
-                {new Date(confirmedBooking.checkIn).toLocaleDateString("en-US", {
-                  weekday: "short",
-                  month: "long",
-                  day: "numeric",
-                  year: "numeric",
-                })}
-              </span>
+              <span className="font-bold text-[#243D2C]">{checkInStr}</span>
             </div>
             <div className="flex justify-between py-1 border-b border-[#EAE5DC]/80">
               <span className="text-[#7B887E]">Check-out Date:</span>
-              <span className="font-bold text-[#243D2C]">
-                {new Date(confirmedBooking.checkOut).toLocaleDateString("en-US", {
-                  weekday: "short",
-                  month: "long",
-                  day: "numeric",
-                  year: "numeric",
-                })}
-              </span>
+              <span className="font-bold text-[#243D2C]">{checkOutStr}</span>
             </div>
             <div className="flex justify-between py-1 border-b border-[#EAE5DC]/80">
               <span className="text-[#7B887E]">Duration & Guests:</span>
@@ -589,27 +617,39 @@ function BookingContent() {
             <div>
               <h5 className="font-bold text-[#243D2C] text-xs mb-0.5">Note from Host Susantha:</h5>
               <p>
-                When your train approaches Ohiya Railway Station, feel free to give us a call. We will meet you at the station platform to assist with your luggage and welcome you to the bungalow with hot Ceylon tea.
+                When your train approaches Ohiya Railway Station, feel free to drop a WhatsApp message or give us a quick call. We will meet you right at the station platform to assist with your luggage and welcome you to the bungalow with hot Ceylon tea.
               </p>
             </div>
           </div>
 
+          {/* Action Buttons: WhatsApp Susantha, Call Susantha, and Close Receipt */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
             <a
-              href="tel:+94714194368"
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-[#243D2C] hover:bg-[#17271D] text-white text-xs sm:text-sm font-bold shadow-md transition-all"
+              href={waUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-[#25D366] hover:bg-[#20ba5a] text-white text-xs sm:text-sm font-bold shadow-md hover:scale-102 active:scale-98 transition-all"
             >
-              <Phone className="w-4 h-4 text-[#DFB775]" />
-              <span>Call Susantha (+94 71 419 4368)</span>
+              <MessageCircle className="w-4 h-4 fill-current" />
+              <span>WhatsApp Susantha (+94 71 419 4368)</span>
             </a>
 
-            <Link
-              href="/"
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-white hover:bg-gray-100 text-[#243D2C] text-xs sm:text-sm font-semibold border border-[#EAE5DC] transition-all"
+            <a
+              href="tel:+94714194368"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-3 rounded-full bg-[#243D2C] hover:bg-[#17271D] text-white text-xs sm:text-sm font-semibold shadow-xs transition-all"
             >
-              <ArrowLeft className="w-4 h-4" />
-              <span>Back to Bungalow Overview</span>
-            </Link>
+              <Phone className="w-4 h-4 text-[#DFB775]" />
+              <span>Call Susantha</span>
+            </a>
+
+            <button
+              type="button"
+              onClick={() => setConfirmedBooking(null)}
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-3 rounded-full bg-white hover:bg-gray-100 text-[#243D2C] text-xs sm:text-sm font-semibold border border-[#EAE5DC] transition-all"
+            >
+              <X className="w-4 h-4" />
+              <span>Close Receipt</span>
+            </button>
           </div>
         </div>
       </div>
