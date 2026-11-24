@@ -1,4 +1,7 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ohiya-villa
+
+**Dawn Breezy Bungalow** — Luxury mountain sanctuary in Ohiya, Sri Lanka (1,775m altitude).
+Direct booking portal, on-site private transport fleet (tour car & mountain scooters), nearby Horton Plains & Ambewela excursions, room rates, and interactive visitor guide.
 
 ## Getting Started
 

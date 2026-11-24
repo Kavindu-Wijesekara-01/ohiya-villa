@@ -1,69 +1,122 @@
-import Image from "next/image";
+"use client";
+
+import { useState } from "react";
+import Navbar from "@/components/Navbar";
+import Hero from "@/components/Hero";
+import ModernBookingBar from "@/components/ModernBookingBar";
+import PropertyHighlights from "@/components/PropertyHighlights";
+import RoomsSection from "@/components/RoomsSection";
+import GallerySection from "@/components/GallerySection";
+import TransportBanner from "@/components/TransportBanner";
+import FacilitiesSection from "@/components/FacilitiesSection";
+import LocationSection from "@/components/LocationSection";
+import HostAndReviews from "@/components/HostAndReviews";
+import FaqSection from "@/components/FaqSection";
+import ContactAndFooter from "@/components/ContactAndFooter";
+import FloatingWhatsApp from "@/components/FloatingWhatsApp";
+import PhotoLightbox from "@/components/PhotoLightbox";
+import ScrollObserver from "@/components/ScrollObserver";
+
+const ALL_PHOTOS = [
+  { url: "/photos/outside-cool-view.jpeg", caption: "Misty Mountain Panorama" },
+  { url: "/photos/2-member-room.jpeg", caption: "Double Room with Garden View" },
+  { url: "/photos/triblebedroom.jpg", caption: "Spacious Triple Bedroom" },
+  { url: "/photos/hero-1.jpg", caption: "Bungalow Garden & Gazebo" },
+  { url: "/photos/outside-view-2.jpeg", caption: "Outdoor Seating & Mountain Terrace" },
+  { url: "/photos/inside-view.jpeg", caption: "Living Area & Dining Table" },
+  { url: "/photos/hero-2.jpg", caption: "Morning Mist on Welimada Road" },
+  { url: "/photos/2-member-room-2.jpeg", caption: "Sunlit Bedroom View" },
+  { url: "/photos/outside-view-3.jpeg", caption: "Private Bungalow Grounds & Parking" },
+  { url: "/photos/wa-20.44.00.jpeg", caption: "En-suite Bathroom with Hot Water" },
+  { url: "/photos/wa-20.52.41.jpeg", caption: "Cloud-Kissed Pine Forest Trail" },
+  { url: "/photos/outside-view-5.jpeg", caption: "Veranda Overlooking the Hills" },
+  { url: "/photos/car-fleet.jpg", caption: "Dedicated On-Site Car for Horton Plains Tours" },
+  { url: "/photos/scooter-fleet.jpg", caption: "On-Site Scooters Exploring Misty Highland Tea Roads" },
+  { url: "/photos/sri-lankan-food.jpg", caption: "Authentic Home-Cooked Ceylon Breakfast & Lunch Feast" },
+  { url: "/photos/highland-hot-water.jpg", caption: "En-suite Bathroom with Steaming Highland Hot Water" },
+];
 
 export default function Home() {
+  const [currentPhotoIndex, setCurrentPhotoIndex] = useState<number | null>(null);
+
+  const handleOpenPhoto = (url: string, caption: string) => {
+    const idx = ALL_PHOTOS.findIndex((p) => p.url === url);
+    if (idx !== -1) {
+      setCurrentPhotoIndex(idx);
+    } else {
+      setCurrentPhotoIndex(0);
+    }
+  };
+
+  const handleClosePhoto = () => {
+    setCurrentPhotoIndex(null);
+  };
+
+  const handlePrevPhoto = () => {
+    if (currentPhotoIndex !== null) {
+      setCurrentPhotoIndex((currentPhotoIndex - 1 + ALL_PHOTOS.length) % ALL_PHOTOS.length);
+    }
+  };
+
+  const handleNextPhoto = () => {
+    if (currentPhotoIndex !== null) {
+      setCurrentPhotoIndex((currentPhotoIndex + 1) % ALL_PHOTOS.length);
+    }
+  };
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert h-5 w-[100px]"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the{" "}
-            <code className="rounded bg-black/[.06] px-1.5 py-0.5 font-mono text-[0.9em] dark:bg-white/[.08]">
-              page.tsx
-            </code>{" "}
-            file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert h-[14px] w-4"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={14}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+    <main className="min-h-screen flex flex-col bg-[#F8F9F7] text-[#1F2923]">
+      {/* Scroll Observer for GPU-accelerated scroll animations */}
+      <ScrollObserver />
+
+      {/* Section 1: Sticky Navigation Bar */}
+      <Navbar />
+
+      {/* Section 2: Hero Section */}
+      <Hero />
+
+      {/* Modern Interactive Booking Calendar & Rate Calculator */}
+      <ModernBookingBar />
+
+      {/* Section 3: Quick Property Highlights Strip */}
+      <PropertyHighlights />
+
+      {/* Section 4: Rooms & Direct Booking Rates */}
+      <RoomsSection onSelectPhoto={handleOpenPhoto} />
+
+      {/* New Dedicated Highland Visual Gallery */}
+      <GallerySection onOpenPhoto={handleOpenPhoto} />
+
+      {/* Section 5: Horton Plains Transport & Local Mobility Banner */}
+      <TransportBanner />
+
+      {/* Section 6: Facilities & Amenities */}
+      <FacilitiesSection />
+
+      {/* Section 7: Prime Location & Nearby Attractions */}
+      <LocationSection />
+
+      {/* Section 8: Meet Your Host & Guest Stories */}
+      <HostAndReviews />
+
+      {/* Section 9: Frequently Asked Questions */}
+      <FaqSection />
+
+      {/* Section 10: Contact Section & Footer */}
+      <ContactAndFooter />
+
+      {/* Floating Action Button: WhatsApp */}
+      <FloatingWhatsApp />
+
+      {/* Accessible Photo Lightbox Modal with Next/Prev Navigation */}
+      <PhotoLightbox
+        isOpen={currentPhotoIndex !== null}
+        photoUrl={currentPhotoIndex !== null ? ALL_PHOTOS[currentPhotoIndex].url : null}
+        caption={currentPhotoIndex !== null ? ALL_PHOTOS[currentPhotoIndex].caption : ""}
+        onClose={handleClosePhoto}
+        onPrev={handlePrevPhoto}
+        onNext={handleNextPhoto}
+      />
+    </main>
   );
 }
