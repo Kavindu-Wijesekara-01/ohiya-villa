@@ -67,7 +67,7 @@ export const ATTRACTIONS: Attraction[] = [
     ],
     shortDescription: "3rd highest railway station in Sri Lanka, nestled among pine hills just 200m from our bungalow door.",
     overview: [
-      "Ohiya Railway Station is the third highest railway station in Sri Lanka, situated at an altitude of 1,775 meters (5,820 ft) on the world-renowned Colombo–Badulla Main Line. Built by British colonial railway engineers in 1893, this quaint stone-and-timber station is famed for its atmospheric mist that rolls across the platforms like clockwork every afternoon.",
+      "Ohiya Railway Station is the third highest railway station in Sri Lanka, situated at an altitude of 1,775 meters (5,820 ft) on the world-renowned Colombo to Badulla Main Line. Built by British colonial railway engineers in 1893, this quaint stone-and-timber station is famed for its atmospheric mist that rolls across the platforms like clockwork every afternoon.",
       "The station serves as the ultimate launching pad for travelers visiting Horton Plains National Park and adventurers embarking on the rugged Devil's Staircase trek down to Kalupahana. Arriving here by the morning scenic express train, with cool pine-scented breezes greeting you as you step onto the platform, is an unforgettable Sri Lankan highland experience.",
       "Because Dawn Breezy Bungalow is located merely 200 meters from the station exit on Welimada Road, our guests enjoy effortless transfers without needing taxi arrangements. You can step off the train, stroll 3 minutes up the gentle incline, and immediately relax with hot Ceylon tea on our veranda."
     ],
@@ -129,7 +129,7 @@ export const ATTRACTIONS: Attraction[] = [
     shortDescription: "UNESCO World Heritage highland plateau featuring the 870m World's End cliff, Baker's Falls, and wild Sambar deer.",
     overview: [
       "Horton Plains National Park is Sri Lanka's most celebrated montane wilderness and a designated UNESCO World Heritage Site. Perched on a windswept plateau exceeding 2,100 meters above sea level, it encompasses dwarf cloud forests, rolling tussock grasslands, sparkling crystal streams, and sheer escarpments that plunge dramatically into the southern plains.",
-      "The undisputed star of the park is 'World's End'—a staggering vertical drop of approximately 870 meters (2,854 feet). On clear mornings before the cloud blanket rolls in, the viewpoint commands views stretching all the way to the southern coastline and the Indian Ocean. A second cliff, 'Mini World's End', drops 270 meters and offers equally spectacular panoramas.",
+      "The undisputed star of the park is 'World's End', a sheer vertical drop of approximately 870 meters (2,854 feet). On clear mornings before the cloud blanket rolls in, the viewpoint commands views stretching all the way to the southern coastline and the Indian Ocean. A second cliff, 'Mini World's End', drops 270 meters and offers equally spectacular panoramas.",
       "The classic 9.5 km circular hiking trail also leads visitors past Baker's Falls, a magnificent 20-meter waterfall formed by the Belihul Oya river cascading over wide metamorphic rock ledges. Along the route, hikers frequently encounter herds of majestic Sambar deer, endemic purple-faced langurs, and rare alpine bird species found nowhere else on earth.",
       "Dawn Breezy Bungalow in Ohiya is one of the closest comfortable accommodations to the park's official entrance gate. Staying with us allows you to depart at 5:30 AM, enter the park right as gates open at 6:00 AM, and witness World's End in its crystal-clear early morning splendour before clouds obscure the precipice."
     ],
@@ -192,7 +192,7 @@ export const ATTRACTIONS: Attraction[] = [
     shortDescription: "The highest railway station in Sri Lanka at 1,897.5m above sea level, home to Summit Level Tunnel No. 18.",
     overview: [
       "Pattipola Railway Station holds the prestigious title of being the highest railway station in Sri Lanka, standing at 1,897.5 meters (6,225 feet) above sea level. Located just one train station north of Ohiya, it is a quintessential highland outpost known for crisp alpine air, dense cypress plantations, and dramatic weather shifts.",
-      "Just north of the station lies the famous 'Summit Level'—the absolute highest geographical point along Sri Lanka's entire 1,500 km railway network. Here, trains pass through Tunnel No. 18 (Pattipola Tunnel), which cuts through the central mountain spine. This tunnel marks an incredible meteorological boundary: entering from the cloudy, wet eastern slope often brings you out into bright sunshine on the western side, or vice versa!",
+      "Just north of the station lies the famous 'Summit Level', the highest geographical point along Sri Lanka's entire 1,500 km railway network. Here, trains pass through Tunnel No. 18 (Pattipola Tunnel), which cuts through the central mountain spine. This tunnel marks an incredible meteorological boundary: entering from the cloudy, wet eastern slope often brings you out into bright sunshine on the western side, or vice versa!",
       "Visiting Pattipola from Dawn Breezy Bungalow is remarkably easy: hop on the morning train at Ohiya Station for a 10-minute joyride, or take a quick scenic drive through the hill forests. It's a favorite stop for railway photographers, train enthusiasts, and hikers."
     ],
     highlights: [
@@ -315,7 +315,7 @@ export const ATTRACTIONS: Attraction[] = [
     overview: [
       "Plummeting an incredible 263 meters (863 feet) down a sheer granite cliff in the Kalupahana valley, Bambarakanda Falls (also known as Bambarakele Falls) is officially the tallest waterfall in Sri Lanka and ranks among the most spectacular natural wonders in the Indian Ocean region.",
       "Fed by the Kuda Oya, a tributary of the Walawe River, the falls resemble a white silk ribbon suspended against dark basalt cliffs and dense evergreen pine forests. During the monsoon and rainy months, the waterfall thunders with intense volume, creating swirling clouds of mist and rainbows across the gorge.",
-      "The trail from Ohiya down towards Bambarakanda passes through the legendary 'Devil's Staircase'—a thrilling off-road track through remote tea estates and cliff-edge bends. For hikers and adventure lovers staying at Dawn Breezy Bungalow, trekking or taking a 4WD excursion down this route is one of Sri Lanka's greatest wilderness adventures."
+      "The trail from Ohiya down towards Bambarakanda passes through the legendary 'Devil's Staircase', a thrilling mountain trail through remote tea estates and cliff-edge bends. For hikers and adventure lovers staying at Dawn Breezy Bungalow, trekking or taking a 4WD excursion down this route is one of Sri Lanka's greatest wilderness adventures."
     ],
     highlights: [
       "Highest waterfall in Sri Lanka (263 meters / 863 feet tall)",
@@ -383,7 +383,7 @@ export const ATTRACTIONS: Attraction[] = [
       "Award-winning highland flower garden along the platform",
       "Stunning scenery of dairy meadows and vegetable step-terraces",
       "Immediate proximity to Ambewela Dairy Farm & New Zealand Farm",
-      "Convenient intermediate stop on the Colombo–Badulla scenic line"
+      "Convenient intermediate stop on the Colombo to Badulla scenic line"
     ],
     activities: [
       "Taking photos of the mountain train entering through farm hills",
@@ -495,7 +495,7 @@ export const ATTRACTIONS: Attraction[] = [
     ],
     shortDescription: "Iconic colonial-era highland lake offering swan boat rides, jet skis, lakeside pony rides, and food stalls.",
     overview: [
-      "Constructed in 1873 during the British colonial era under Governor Sir William Gregory, Gregory Lake is the vibrant aquatic centerpiece of 'Little England'—Nuwara Eliya. Spanning 91 hectares, the lake was originally created to harvest hydro power and provide a recreational boating basin for highland tea planters.",
+      "Constructed in 1873 during the British colonial era under Governor Sir William Gregory, Gregory Lake is the vibrant aquatic centerpiece of 'Little England' in Nuwara Eliya. Spanning 91 hectares, the lake was originally created to harvest hydro power and provide a recreational boating basin for highland tea planters.",
       "Today, the lake has been transformed into a premier leisure park featuring a paved 5 km walking and cycling promenade, well-manicured floral gardens, and open-air wooden dining pavilions. Visitors can enjoy swan-shaped pedal boats, high-speed jet skis, scenic boat cruises, pony rides along the bank, and bicycle rentals.",
       "The lake is flanked by Mount Pidurutalagala (Sri Lanka's highest peak) on one side and rolling tea hills on the other. It makes for an ideal afternoon day trip from Dawn Breezy Bungalow, combining colonial architecture with lively lakeside entertainment."
     ],
@@ -618,7 +618,7 @@ export const ATTRACTIONS: Attraction[] = [
     shortDescription: "Sri Lanka's most iconic wilderness hike starting right from Ohiya, descending through hairpin bends, tea estates, and Bambarakanda Falls.",
     overview: [
       "The 'Devil's Staircase' is undisputed as one of the most thrilling and scenic trekking routes in Sri Lanka. Spanning approximately 14 kilometers from the misty heights of Ohiya (approx. 1,800m) down to Kalupahana (approx. 1,100m), the trail earns its dramatic name from its steep gradients, narrow rocky ledges, and razor-sharp zigzagging hairpin turns.",
-      "The trail winds through the historic Udaweriya Tea Estate—one of the most remote and untouched colonial tea plantations in Sri Lanka—passing misty mountain gaps, bubbling natural springs, abandoned tea workers' cottages, and towering eucalyptus forests. Halfway down, the path crosses close to the crest and base of Bambarakanda Falls, treating trekkers to roaring water vistas from above.",
+      "The trail winds through the historic Udaweriya Tea Estate, one of the most remote colonial tea plantations in Sri Lanka. It passes misty mountain gaps, bubbling natural springs, abandoned tea workers' cottages, and towering eucalyptus forests. Halfway down, the path crosses close to the crest and base of Bambarakanda Falls, treating trekkers to roaring water vistas from above.",
       "Because Dawn Breezy Bungalow is situated in Ohiya, our guests are literally at the doorstep of this world-famous trek! You can enjoy a wholesome early morning breakfast, step right out onto the trail with trekking poles, and complete the exhilarating downhill hike to Kalupahana, where Susantha can arrange transport back or onward travel."
     ],
     highlights: [

@@ -20,7 +20,7 @@ export default function HouseRulesAndFaq() {
     {
       icon: Clock,
       title: "Check-in & Check-out",
-      desc: "Check-in: 14:00 – 23:00 | Check-out: 00:00 – 11:00",
+      desc: "Check-in: 14:00 to 23:00 | Check-out: 00:00 to 11:00",
       highlight: "Flexible on early/late train arrivals",
     },
     {
@@ -59,7 +59,7 @@ export default function HouseRulesAndFaq() {
     {
       question: "How far is the bungalow from Ohiya Railway Station?",
       answer:
-        "Just 200 meters (approx. 950 feet) — a relaxed 3-minute walk along Welimada Road. You won't need a taxi or tuk-tuk from the station, and Susantha is happy to assist with your luggage if needed.",
+        "Just 200 meters (approx. 950 feet), a relaxed 3-minute walk along Welimada Road. You will not need a taxi or tuk-tuk from the station, and Susantha is happy to assist with your luggage on arrival.",
     },
     {
       question: "Can you arrange transport to Horton Plains National Park?",
@@ -84,7 +84,7 @@ export default function HouseRulesAndFaq() {
     {
       question: "What is the weather and temperature like in Ohiya?",
       answer:
-        "At 1,770m altitude, Ohiya is refreshingly cool year-round. Daytime temperatures range between 18°C–22°C (64°F–72°F) and evening/night temperatures often drop to 10°C–14°C (50°F–57°F). We recommend bringing warm fleeces or jackets for the mornings and evenings.",
+        "At 1,770m altitude, Ohiya is refreshingly cool year-round. Daytime temperatures range between 18°C to 22°C (64°F to 72°F) and evening temperatures often drop to 10°C to 14°C (50°F to 57°F). We recommend bringing warm fleeces or jackets for the mornings and evenings.",
     },
   ];
 
@@ -195,12 +195,10 @@ export default function HouseRulesAndFaq() {
           <div className="mt-8 text-center text-xs text-[#7B887E]">
             Still have a question about train timings or hiking routes?{" "}
             <a
-              href="https://wa.me/94714194368"
-              target="_blank"
-              rel="noopener noreferrer"
+              href="#contact"
               className="font-bold text-[#243D2C] hover:text-[#C58E47] underline underline-offset-4"
             >
-              Ask Susantha directly on WhatsApp
+              Ask Susantha directly
             </a>
           </div>
         </div>

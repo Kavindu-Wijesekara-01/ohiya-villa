@@ -2,12 +2,11 @@
 
 import { useState, useEffect } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import {
-  MessageCircle,
+  Calendar,
   ArrowRight,
   ShieldCheck,
-  Star,
-  MapPin,
   Train,
   Mountain,
   Compass,
@@ -56,7 +55,7 @@ const TICKER_ITEMS = [
     icon: Sparkles,
     prefix: "Views",
     text: "Panoramic Pine Valley Views",
-    highlight: "Scenic Haven",
+    highlight: "Valley Views",
   },
   {
     icon: ShieldCheck,
@@ -136,18 +135,17 @@ export default function Hero() {
       {/* Hero Content - Perfectly Balanced Vertical Layout with Scroll Animation */}
       <div
         style={{
-          transform: `translateY(${Math.min(scrollY * 0.22, 140)}px)`,
-          opacity: Math.max(0, 1 - scrollY / 650),
-          willChange: "transform, opacity",
+          transform: scrollY > 0 ? `translate3d(0, ${Math.round(Math.min(scrollY * 0.2, 130))}px, 0)` : "none",
+          opacity: scrollY > 0 ? Math.max(0, 1 - scrollY / 650) : 1,
         }}
-        className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 sm:pt-28 md:pt-32 pb-24 sm:pb-32 lg:pb-36 text-center flex flex-col items-center justify-center min-h-screen min-h-[100dvh] w-full transition-all duration-150 ease-out"
+        className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 sm:pt-28 md:pt-32 pb-24 sm:pb-32 lg:pb-36 text-center flex flex-col items-center justify-center min-h-screen min-h-[100dvh] w-full"
       >
         {/* Unified Content Block: Eyebrow, Headline, Subheadline & Action Buttons */}
         <div className="flex flex-col items-center text-center w-full max-w-4xl my-auto">
           {/* Circled Upper Block: Eyebrow Badge & Main Headline - Elevated slightly up */}
           <div className="flex flex-col items-center -translate-y-3 sm:-translate-y-4 lg:-translate-y-5 transition-transform duration-300">
             {/* Continuously Animated Compact Eyebrow Badge */}
-            <div className="scroll-reveal mb-4 sm:mb-5 min-h-[36px] flex items-center justify-center">
+            <div className="animate-in fade-in duration-600 slide-in-from-bottom-2 mb-4 sm:mb-5 min-h-[36px] flex items-center justify-center">
               <div
                 key={tickerIndex}
                 className="animate-in fade-in slide-in-from-bottom-1 duration-400 inline-flex items-center gap-2 px-3 sm:px-3.5 py-1 sm:py-1.5 rounded-full bg-black/45 hover:bg-black/60 border border-[#C58E47]/45 backdrop-blur-xl shadow-md transition-all whitespace-nowrap"
@@ -165,40 +163,38 @@ export default function Hero() {
             </div>
 
             {/* Main Headline - Condensed Architectural Display with Signature Dancing Script Overlap */}
-            <h1 className="scroll-reveal delay-100 flex flex-col items-center justify-center text-center max-w-4xl mx-auto px-2 mb-3.5 sm:mb-4.5">
-              <span className="font-antonio font-bold text-[3.25rem] xs:text-[3.65rem] sm:text-6xl md:text-7xl lg:text-8xl xl:text-[6.5rem] tracking-tight uppercase leading-[0.9] sm:leading-[0.88] bg-gradient-to-b from-white via-[#FFF7E8] to-[#E5DAC8] bg-clip-text text-transparent drop-shadow-[0_12px_32px_rgba(0,0,0,0.9)] select-none relative z-0">
+            <h1 className="animate-in fade-in duration-700 slide-in-from-bottom-3 delay-100 flex flex-col items-center justify-center text-center max-w-4xl mx-auto px-2 mb-3.5 sm:mb-4.5">
+              <span className="font-antonio font-bold text-[3.25rem] xs:text-[3.65rem] sm:text-6xl md:text-7xl lg:text-8xl xl:text-[6.5rem] tracking-tight uppercase leading-[0.9] sm:leading-[0.88] bg-gradient-to-b from-white via-[#FFF7E8] to-[#E5DAC8] bg-clip-text text-transparent [text-shadow:0_4px_24px_rgba(0,0,0,0.8)] select-none relative z-0">
                 Wake Up Above
               </span>
-              <span className="font-dancing font-bold text-[3.85rem] xs:text-[4.25rem] sm:text-6xl md:text-7xl lg:text-8xl xl:text-[6.5rem] normal-case text-[#DFB775] drop-shadow-[0_8px_24px_rgba(0,0,0,0.95)] drop-shadow-[0_2px_6px_rgba(0,0,0,0.85)] leading-[1.0] sm:leading-[1.0] -mt-4 xs:-mt-5 sm:-mt-6 md:-mt-8 lg:-mt-10 relative z-10 inline-block select-none">
+              <span className="font-dancing font-bold text-[3.85rem] xs:text-[4.25rem] sm:text-6xl md:text-7xl lg:text-8xl xl:text-[6.5rem] normal-case text-[#DFB775] [text-shadow:0_4px_16px_rgba(0,0,0,0.9),0_1px_3px_rgba(0,0,0,0.9)] leading-[1.0] sm:leading-[1.0] -mt-4 xs:-mt-5 sm:-mt-6 md:-mt-8 lg:-mt-10 relative z-10 inline-block select-none">
                 The Clouds
               </span>
             </h1>
           </div>
 
           {/* Subheadline - Stays grounded in its balanced position */}
-          <p className="scroll-reveal delay-200 max-w-xl text-xs sm:text-sm md:text-base text-white/85 font-normal leading-relaxed drop-shadow-sm px-2 mb-7 sm:mb-9 md:mb-10">
-            A serene highland sanctuary in Ohiya, offering misty pine panoramas and effortless access to Horton Plains.
+          <p className="animate-in fade-in duration-700 slide-in-from-bottom-3 delay-200 max-w-xl text-xs sm:text-sm md:text-base text-white/85 font-normal leading-relaxed drop-shadow-sm px-2 mb-7 sm:mb-9 md:mb-10">
+            A quiet family-run bungalow in Ohiya, offering panoramic pine valley views and easy morning trips to Horton Plains.
           </p>
 
           {/* Balanced Action Buttons Block - Slightly more compact and refined on mobile */}
-          <div className="scroll-reveal delay-300 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 w-full sm:w-auto">
-            <a
-              href="https://wa.me/94714194368?text=Hello%20Susantha%2C%20I%20would%20like%20to%20reserve%20a%20stay%20at%20Dawn%20Breezy%20Bungalow%2C%20Ohiya."
-              target="_blank"
-              rel="noopener noreferrer"
+          <div className="animate-in fade-in duration-700 slide-in-from-bottom-3 delay-300 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 w-full sm:w-auto">
+            <Link
+              href="/booking"
               className="w-[78%] xs:w-[72%] sm:w-auto max-w-[270px] sm:max-w-none min-w-[210px] sm:min-w-[215px] inline-flex items-center justify-center gap-2 px-5 sm:px-7 py-3 rounded-full bg-[#C58E47] hover:bg-[#A97633] text-white font-semibold text-xs sm:text-sm shadow-lg shadow-[#C58E47]/25 hover:scale-103 active:scale-97 transition-all duration-200 border border-[#D4A362]/40"
             >
-              <MessageCircle className="w-3.5 h-3.5 fill-current" />
+              <Calendar className="w-3.5 h-3.5" />
               <span>Reserve Your Stay</span>
-            </a>
+            </Link>
 
-            <a
+            <Link
               href="/#rooms"
               className="w-[78%] xs:w-[72%] sm:w-auto max-w-[270px] sm:max-w-none min-w-[210px] sm:min-w-[215px] inline-flex items-center justify-center gap-2 px-5 sm:px-7 py-3 rounded-full bg-white/15 hover:bg-white/25 text-white font-semibold text-xs sm:text-sm backdrop-blur-md border border-white/35 hover:border-white shadow-md hover:scale-103 active:scale-97 transition-all duration-200"
             >
               <span>Explore Rooms &amp; Rates</span>
               <ArrowRight className="w-3.5 h-3.5" />
-            </a>
+            </Link>
           </div>
         </div>
       </div>

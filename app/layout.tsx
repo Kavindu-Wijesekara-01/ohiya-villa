@@ -1,19 +1,22 @@
 import type { Metadata } from "next";
 import { Playfair_Display, Plus_Jakarta_Sans, Dancing_Script, Cinzel, Bodoni_Moda, Antonio } from "next/font/google";
+import ScrollObserver from "@/components/ScrollObserver";
 import "./globals.css";
 
 const playfair = Playfair_Display({
   variable: "--font-playfair",
   subsets: ["latin"],
   display: "swap",
-  weight: ["400", "500", "600", "700"],
+  weight: ["400", "500", "600", "700", "800", "900"],
+  style: ["normal", "italic"],
 });
 
 const bodoniModa = Bodoni_Moda({
   variable: "--font-bodoni",
   subsets: ["latin"],
   display: "swap",
-  weight: ["400", "600", "700", "800", "900"],
+  weight: ["400", "500", "600", "700", "800", "900"],
+  style: ["normal", "italic"],
 });
 
 const antonio = Antonio({
@@ -27,28 +30,29 @@ const cinzel = Cinzel({
   variable: "--font-cinzel",
   subsets: ["latin"],
   display: "swap",
-  weight: ["400", "500", "600", "700"],
+  weight: ["400", "500", "600", "700", "800"],
 });
 
 const plusJakarta = Plus_Jakarta_Sans({
   variable: "--font-jakarta",
   subsets: ["latin"],
   display: "swap",
-  weight: ["400", "500", "600", "700"],
+  weight: ["300", "400", "500", "600", "700", "800"],
+  style: ["normal", "italic"],
 });
 
 const dancingScript = Dancing_Script({
   variable: "--font-dancing",
   subsets: ["latin"],
   display: "swap",
-  weight: ["500", "600", "700"],
+  weight: ["400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://dawnbreezybungalow.com"),
-  title: "Dawn Breezy Bungalow – Ohiya | Mountain Retreat & Gateway to Horton Plains",
+  title: "Dawn Breezy Bungalow, Ohiya | Mountain Stay and Gateway to Horton Plains",
   description:
-    "Serene mountain getaway on Welimada Road, Ohiya, Sri Lanka (also listed on Booking.com as Ohiya View Resort). 200m from Ohiya Station. Direct booking with no prepayment, hot water, free WiFi & private Horton Plains transport.",
+    "Quiet mountain stay on Welimada Road, Ohiya, Sri Lanka (also listed on Booking.com as Ohiya View Resort). 200m from Ohiya Station. Direct booking with no prepayment, hot water, free WiFi and private Horton Plains transport.",
   keywords: [
     "Dawn Breezy Bungalow",
     "Ohiya View Resort",
@@ -62,7 +66,7 @@ export const metadata: Metadata = {
   ],
   authors: [{ name: "Susantha Jayasiri" }],
   openGraph: {
-    title: "Dawn Breezy Bungalow – Ohiya, Sri Lanka",
+    title: "Dawn Breezy Bungalow, Ohiya, Sri Lanka",
     description:
       "Wake up above the clouds in Ohiya. 200m from Ohiya Station, hot water, mountain views, and direct access to Horton Plains.",
     url: "https://dawnbreezybungalow.com",
@@ -80,8 +84,8 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Dawn Breezy Bungalow – Ohiya, Sri Lanka",
-    description: "Tranquil mountain retreat 200m from Ohiya Railway Station. Direct rates & Horton Plains transport.",
+    title: "Dawn Breezy Bungalow, Ohiya, Sri Lanka",
+    description: "Peaceful mountain retreat 200m from Ohiya Railway Station. Direct rates and Horton Plains transport.",
     images: ["/photos/hero-1.jpg"],
   },
   icons: {
@@ -101,6 +105,7 @@ export default function RootLayout({
       className={`${playfair.variable} ${cinzel.variable} ${bodoniModa.variable} ${antonio.variable} ${plusJakarta.variable} ${dancingScript.variable} scroll-smooth antialiased`}
     >
       <body className="min-h-full flex flex-col bg-[#F8F9F7] text-[#1F2923] font-sans selection:bg-[#C58E47]/20 selection:text-[#243D2C]">
+        <ScrollObserver />
         {children}
       </body>
     </html>

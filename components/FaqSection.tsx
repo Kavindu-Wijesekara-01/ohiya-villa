@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown, HelpCircle, MessageCircle } from "lucide-react";
+import { ChevronDown, HelpCircle } from "lucide-react";
 
 export default function FaqSection() {
   const [openFaq, setOpenFaq] = useState<number | null>(0);
@@ -10,7 +10,7 @@ export default function FaqSection() {
     {
       question: "How far is the bungalow from Ohiya Railway Station?",
       answer:
-        "Just 200 meters (approx. 950 feet) — a relaxed 3-minute walk along Welimada Road. You won't need a taxi or tuk-tuk from the station, and Susantha is happy to assist with your luggage if needed.",
+        "Just 200 meters (approx. 950 feet), a relaxed 3-minute walk along Welimada Road. You will not need a taxi or tuk-tuk from the station, and Susantha is happy to assist with your luggage on arrival.",
     },
     {
       question: "Can you arrange transport to Horton Plains National Park?",
@@ -35,7 +35,7 @@ export default function FaqSection() {
     {
       question: "What is the weather and temperature like in Ohiya?",
       answer:
-        "At 1,770m altitude, Ohiya is refreshingly cool year-round. Daytime temperatures range between 18°C–22°C (64°F–72°F) and evening/night temperatures often drop to 10°C–14°C (50°F–57°F). We recommend bringing warm fleeces or jackets for the mornings and evenings.",
+        "At 1,770m altitude, Ohiya is refreshingly cool year-round. Daytime temperatures range between 18°C to 22°C (64°F to 72°F) and evening temperatures often drop to 10°C to 14°C (50°F to 57°F). We recommend bringing warm fleeces or jackets for the mornings and evenings.",
     },
   ];
 
@@ -82,9 +82,8 @@ export default function FaqSection() {
                     {faq.question}
                   </span>
                   <div
-                    className={`w-7 h-7 rounded-full bg-white border border-[#E2E6E3] flex items-center justify-center flex-shrink-0 text-[#243D2C] transition-transform duration-300 ${
-                      isOpen ? "rotate-180 bg-[#243D2C] text-white" : ""
-                    }`}
+                    className={`w-7 h-7 rounded-full bg-white border border-[#E2E6E3] flex items-center justify-center flex-shrink-0 text-[#243D2C] transition-transform duration-300 ${isOpen ? "rotate-180 bg-[#243D2C] text-white" : ""
+                      }`}
                   >
                     <ChevronDown className="w-4 h-4" />
                   </div>
@@ -100,18 +99,7 @@ export default function FaqSection() {
           })}
         </div>
 
-        {/* Quick contact support note */}
-        <div className="scroll-reveal mt-10 text-center text-xs sm:text-sm text-[#4F6154] font-medium">
-          Have another question about your travel plans?{" "}
-          <a
-            href="https://wa.me/94714194368"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="font-bold text-[#243D2C] hover:text-[#C58E47] underline underline-offset-4"
-          >
-            Ask Susantha directly on WhatsApp
-          </a>
-        </div>
+
       </div>
     </section>
   );

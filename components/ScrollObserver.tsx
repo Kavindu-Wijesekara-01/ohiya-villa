@@ -1,70 +1,42 @@
 "use client";
 
-import { useEffect } from "react";
-
-const SELECTOR =
-  ".scroll-reveal, .scroll-reveal-img, .scroll-reveal-scale, .scroll-reveal-left, .scroll-reveal-right, .scroll-reveal-vehicle";
+import { useEffect, useRef } from "react";
 
 export default function ScrollObserver() {
+  const progressBarRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
-    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (prefersReducedMotion) {
-      document.querySelectorAll(SELECTOR).forEach((el) => {
-        el.classList.add("is-visible");
-      });
-      return;
-    }
+    // Hardware-accelerated Scroll Progress Indicator at the top of the viewport
+    let animationFrameId: number;
 
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add("is-visible");
-            observer.unobserve(entry.target);
-          }
-        });
-      },
-      {
-        root: null,
-        rootMargin: "0px 0px -40px 0px",
-        threshold: 0.05,
-      }
-    );
-
-    const observeElements = () => {
-      const elements = document.querySelectorAll(SELECTOR);
-      elements.forEach((el) => {
-        if (!el.classList.contains("is-visible")) {
-          observer.observe(el);
-        }
-      });
+    const updateScrollProgress = () => {
+      if (!progressBarRef.current) return;
+      const scrollTop = window.scrollY || document.documentElement.scrollTop;
+      const scrollHeight = document.documentElement.scrollHeight - window.innerHeight;
+      const progress = scrollHeight > 0 ? Math.min(1, Math.max(0, scrollTop / scrollHeight)) : 0;
+      progressBarRef.current.style.transform = `scaleX(${progress})`;
     };
 
-    observeElements();
+    const handleScroll = () => {
+      cancelAnimationFrame(animationFrameId);
+      animationFrameId = requestAnimationFrame(updateScrollProgress);
+    };
 
-    // Re-scan after short delay for dynamically rendered cards & images
-    const timer1 = setTimeout(observeElements, 200);
-    const timer2 = setTimeout(observeElements, 600);
-    const timer3 = setTimeout(observeElements, 1200);
-
-    // Mutation observer for tab filter switching (e.g. Gallery & Attractions)
-    const mutationObserver = new MutationObserver(() => {
-      observeElements();
-    });
-
-    mutationObserver.observe(document.body, {
-      childList: true,
-      subtree: true,
-    });
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    updateScrollProgress();
 
     return () => {
-      clearTimeout(timer1);
-      clearTimeout(timer2);
-      clearTimeout(timer3);
-      observer.disconnect();
-      mutationObserver.disconnect();
+      window.removeEventListener("scroll", handleScroll);
+      cancelAnimationFrame(animationFrameId);
     };
   }, []);
 
-  return null;
+  return (
+    <div
+      ref={progressBarRef}
+      className="fixed top-0 left-0 right-0 h-[2.5px] bg-gradient-to-r from-[#DFB775] via-[#C58E47] to-[#DFB775] z-50 origin-left pointer-events-none transition-transform duration-75 ease-out shadow-xs shadow-[#C58E47]/40"
+      style={{ transform: "scaleX(0)" }}
+      aria-hidden="true"
+    />
+  );
 }

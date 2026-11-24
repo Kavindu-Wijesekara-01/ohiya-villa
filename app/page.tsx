@@ -3,7 +3,6 @@
 import { useState } from "react";
 import Navbar from "@/components/Navbar";
 import Hero from "@/components/Hero";
-import ModernBookingBar from "@/components/ModernBookingBar";
 import PropertyHighlights from "@/components/PropertyHighlights";
 import RoomsSection from "@/components/RoomsSection";
 import GallerySection from "@/components/GallerySection";
@@ -15,7 +14,6 @@ import FaqSection from "@/components/FaqSection";
 import ContactAndFooter from "@/components/ContactAndFooter";
 import FloatingWhatsApp from "@/components/FloatingWhatsApp";
 import PhotoLightbox from "@/components/PhotoLightbox";
-import ScrollObserver from "@/components/ScrollObserver";
 
 const ALL_PHOTOS = [
   { url: "/photos/outside-cool-view.jpeg", caption: "Misty Mountain Panorama" },
@@ -39,7 +37,7 @@ const ALL_PHOTOS = [
 export default function Home() {
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState<number | null>(null);
 
-  const handleOpenPhoto = (url: string, caption: string) => {
+  const handleOpenPhoto = (url: string, _caption: string) => {
     const idx = ALL_PHOTOS.findIndex((p) => p.url === url);
     if (idx !== -1) {
       setCurrentPhotoIndex(idx);
@@ -66,17 +64,11 @@ export default function Home() {
 
   return (
     <main className="min-h-screen flex flex-col bg-[#F8F9F7] text-[#1F2923]">
-      {/* Scroll Observer for GPU-accelerated scroll animations */}
-      <ScrollObserver />
-
       {/* Section 1: Sticky Navigation Bar */}
       <Navbar />
 
       {/* Section 2: Hero Section */}
       <Hero />
-
-      {/* Modern Interactive Booking Calendar & Rate Calculator */}
-      <ModernBookingBar />
 
       {/* Section 3: Quick Property Highlights Strip */}
       <PropertyHighlights />

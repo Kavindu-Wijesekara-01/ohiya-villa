@@ -15,7 +15,6 @@ import {
   Car,
   CheckCircle2,
   ExternalLink,
-  MessageCircle,
   Phone,
   Camera,
   ChevronRight,
@@ -131,14 +130,14 @@ export default function AttractionDetailView({
             </div>
 
             {/* Title & Sinhala Name with Contrast Shadows */}
-            <h1 className="font-serif text-3xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-white mb-2 leading-tight drop-shadow-[0_4px_16px_rgba(0,0,0,0.9)]">
+            <h1 className="font-serif text-3xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-white mb-2 leading-tight [text-shadow:0_4px_16px_rgba(0,0,0,0.9)]">
               {attraction.name}
             </h1>
-            <p className="text-base sm:text-xl text-[#DFB775] font-serif mb-6 font-medium drop-shadow-[0_2px_8px_rgba(0,0,0,0.85)]">
+            <p className="text-base sm:text-xl text-[#DFB775] font-serif mb-6 font-medium [text-shadow:0_2px_8px_rgba(0,0,0,0.85)]">
               {attraction.sinhalaName}
             </p>
 
-            <p className="text-base sm:text-lg text-white/95 leading-relaxed mb-8 drop-shadow-[0_2px_8px_rgba(0,0,0,0.9)] max-w-2xl font-normal">
+            <p className="text-base sm:text-lg text-white/95 leading-relaxed mb-8 [text-shadow:0_2px_8px_rgba(0,0,0,0.9)] max-w-2xl font-normal">
               {attraction.shortDescription}
             </p>
 
@@ -155,17 +154,13 @@ export default function AttractionDetailView({
                 <ExternalLink className="w-3.5 h-3.5 opacity-80 group-hover:translate-x-0.5 transition-transform" />
               </a>
 
-              <a
-                href={`https://wa.me/94714194368?text=Hello%20Susantha%2C%20I%20would%20like%20to%20arrange%20the%20on-site%20private%20car%20or%20scooter%20to%20visit%20${encodeURIComponent(
-                  attraction.name
-                )}%20while%20staying%20at%20Dawn%20Breezy%20Bungalow.`}
-                target="_blank"
-                rel="noopener noreferrer"
+              <Link
+                href="/#contact"
                 className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-black/55 hover:bg-black/70 text-white text-sm font-semibold border border-white/30 transition-all shadow-sm"
               >
-                <MessageCircle className="w-4 h-4 text-[#25D366]" />
+                <Compass className="w-4 h-4 text-[#D4A362]" />
                 <span>Ask Susantha for Transport</span>
-              </a>
+              </Link>
             </div>
           </div>
         </div>
@@ -467,21 +462,17 @@ export default function AttractionDetailView({
                           Private Mountain Tour Car
                         </h4>
                         <p className="text-xs text-[#E0E7E2] leading-relaxed mb-4">
-                          Seats 4–5 guests. Perfect for early morning sunrise trips to {attraction.name} ({attraction.distance}, {attraction.travelTime}).
+                          Seats 4 to 5 guests. Perfect for early morning sunrise trips to {attraction.name} ({attraction.distance}, {attraction.travelTime}).
                         </p>
                       </div>
 
-                      <a
-                        href={`https://wa.me/94714194368?text=Hello%20Susantha%2C%20I%20would%20like%20to%20book%20the%20on-site%20private%20tour%20car%20for%20visiting%20${encodeURIComponent(
-                          attraction.name
-                        )}%20while%20staying%20at%20Dawn%20Breezy%20Bungalow.`}
-                        target="_blank"
-                        rel="noopener noreferrer"
+                      <Link
+                        href="/#contact"
                         className="inline-flex items-center justify-center gap-2 w-full py-2.5 px-4 rounded-xl bg-[#C58E47] hover:bg-[#D69F56] text-[#0D1912] font-semibold text-xs shadow-md transition-all active:scale-95"
                       >
-                        <MessageCircle className="w-3.5 h-3.5 fill-current" />
-                        <span>Book Car on WhatsApp</span>
-                      </a>
+                        <Car className="w-3.5 h-3.5 fill-current" />
+                        <span>Reserve Car for Tour</span>
+                      </Link>
                     </div>
 
                     {/* Fleet Card 2: 2 Highland Scooters */}
@@ -512,17 +503,13 @@ export default function AttractionDetailView({
                         </p>
                       </div>
 
-                      <a
-                        href={`https://wa.me/94714194368?text=Hello%20Susantha%2C%20I%20would%20like%20to%20rent%20the%20on-site%20mountain%20scooters%20for%20visiting%20${encodeURIComponent(
-                          attraction.name
-                        )}%20while%20staying%20at%20Dawn%20Breezy%20Bungalow.`}
-                        target="_blank"
-                        rel="noopener noreferrer"
+                      <Link
+                        href="/#contact"
                         className="inline-flex items-center justify-center gap-2 w-full py-2.5 px-4 rounded-xl bg-[#C58E47] hover:bg-[#D69F56] text-[#0D1912] font-semibold text-xs shadow-md transition-all active:scale-95"
                       >
-                        <MessageCircle className="w-3.5 h-3.5 fill-current" />
-                        <span>Rent Scooters on WhatsApp</span>
-                      </a>
+                        <Compass className="w-3.5 h-3.5" />
+                        <span>Rent Scooters for Tour</span>
+                      </Link>
                     </div>
                   </div>
                 </div>
@@ -552,17 +539,13 @@ export default function AttractionDetailView({
                 </p>
 
                 <div className="space-y-3">
-                  <a
-                    href={`https://wa.me/94714194368?text=Hello%20Susantha%2C%20I%20am%20interested%20in%20arranging%20transport%20and%20visiting%20${encodeURIComponent(
-                      attraction.name
-                    )}%20while%20staying%20at%20Dawn%20Breezy%20Bungalow.`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="w-full flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-[#25D366] hover:bg-[#1EBE5D] text-white text-sm font-bold shadow-md transition-all"
+                  <Link
+                    href="/#contact"
+                    className="w-full flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-[#C58E47] hover:bg-[#B37E3A] text-white text-sm font-bold shadow-md transition-all"
                   >
-                    <MessageCircle className="w-4 h-4 fill-current" />
-                    <span>WhatsApp Susantha</span>
-                  </a>
+                    <Calendar className="w-4 h-4" />
+                    <span>Inquire About Trip</span>
+                  </Link>
 
                   <a
                     href="tel:+94714194368"

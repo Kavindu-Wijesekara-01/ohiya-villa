@@ -1,25 +1,18 @@
 "use client";
 
-import { useState } from "react";
-import { MessageCircle, X } from "lucide-react";
+import { MessageCircle } from "lucide-react";
 
 export default function FloatingWhatsApp() {
-  const [showTooltip, setShowTooltip] = useState(false);
-
   return (
     <div className="fixed bottom-6 right-6 z-50 flex flex-col items-end group">
-      {/* Tooltip / Prompt bubble on desktop */}
-      <div
-        className={`mb-3 bg-white text-[#1F2923] text-xs font-medium py-2 px-3.5 rounded-2xl shadow-xl border border-[#E2E6E3] max-w-xs transition-all duration-300 pointer-events-none hidden sm:block ${
-          showTooltip ? "opacity-100 translate-y-0" : "opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0"
-        }`}
-      >
+      {/* Tooltip / Prompt bubble on desktop with high contrast */}
+      <div className="mb-3 bg-white text-[#1F2923] text-xs font-medium py-2.5 px-4 rounded-2xl shadow-2xl border border-[#DFB775]/50 max-w-xs transition-all duration-300 pointer-events-none hidden sm:block opacity-0 translate-y-2 group-hover:opacity-100 group-hover:translate-y-0">
         <div className="flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
           <span className="font-bold text-[#243D2C]">Need quick assistance?</span>
         </div>
-        <p className="text-[11px] text-[#7B887E] mt-0.5">
-          Chat with host Susantha on WhatsApp for direct rates &amp; availability.
+        <p className="text-[11px] text-[#58685D] mt-0.5 leading-relaxed">
+          Chat with host Susantha on WhatsApp for direct rates and train pickup.
         </p>
       </div>
 

@@ -1,24 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import {
   Bed,
   Users,
   Mountain,
   Flame,
-  Wifi,
-  Coffee,
   CheckCircle2,
-  MessageCircle,
-  ShieldCheck,
   ChevronLeft,
   ChevronRight,
   ChevronDown,
   Sparkles,
   Maximize2,
-  Clock,
-  Car
+  Clock
 } from "lucide-react";
 
 interface RoomSectionProps {
@@ -52,14 +48,13 @@ interface RoomItem {
   goodToKnow: string[];
 }
 
-export default function RoomsSection({ onSelectPhoto }: RoomSectionProps) {
-  const rooms: RoomItem[] = [
+const DEFAULT_ROOMS: RoomItem[] = [
     {
       id: "double-room",
       roomNumber: "ROOM 01",
-      categoryTag: "HIGHLAND SANCTUARY • SLEEPS 2",
+      categoryTag: "HIGHLAND ROOM • SLEEPS 2",
       name: "Double Room with Mountain View",
-      subtitle: "A tranquil pine sanctuary above the clouds",
+      subtitle: "A peaceful room with pine valley views",
       description:
         "Wake up to misty pine panoramas and the quiet mountain breeze at 1,775m elevation. Features crisp highland linens, warm timber accents, an en-suite private hot-water bathroom, and a scenic veranda terrace made for long mornings with hot Ceylon tea.",
       photos: [
@@ -145,11 +140,11 @@ export default function RoomsSection({ onSelectPhoto }: RoomSectionProps) {
     {
       id: "full-bungalow",
       roomNumber: "ROOM 03",
-      categoryTag: "WHOLE PROPERTY • SLEEPS 8–10",
+      categoryTag: "WHOLE PROPERTY • SLEEPS 8 TO 10",
       name: "Full Bungalow Exclusive Stay",
       subtitle: "All 3 bedrooms, private living room & kitchen",
       description:
-        "Enjoy the ultimate private mountain haven. Reserve the entire Dawn Breezy Bungalow exclusively for your family or hiking party. Includes all 3 bedrooms, 3 private en-suite hot-water bathrooms, private dining room, full kitchen, garden gazebo, and mountain parking.",
+        "Enjoy private mountain comfort. Reserve the entire Dawn Breezy Bungalow exclusively for your family or hiking party. Includes all 3 bedrooms, 3 private en-suite hot-water bathrooms, private dining room, full kitchen, garden gazebo, and mountain parking.",
       photos: [
         { url: "/photos/outside-cool-view.jpeg", caption: "Bungalow Veranda & Mountain Vista" },
         { url: "/photos/hero-1.jpg", caption: "Bungalow Garden & Gazebo" },
@@ -158,7 +153,7 @@ export default function RoomsSection({ onSelectPhoto }: RoomSectionProps) {
       ],
       specs: {
         bed: "3 Private Bedrooms",
-        sleeps: "Up to 8–10 Guests",
+        sleeps: "Up to 8 to 10 Guests",
         outlook: "360° Misty Mountain Horizon",
         bathroom: "3 Private En-Suite Bathrooms",
       },
@@ -186,6 +181,44 @@ export default function RoomsSection({ onSelectPhoto }: RoomSectionProps) {
       ],
     },
   ];
+
+export default function RoomsSection({ onSelectPhoto }: RoomSectionProps) {
+  const [rooms, setRooms] = useState<RoomItem[]>(DEFAULT_ROOMS);
+
+  useEffect(() => {
+    let ignore = false;
+    fetch("/api/rooms")
+      .then((res) => res.json())
+      .then((data) => {
+        if (!ignore && data.success && Array.isArray(data.rooms) && data.rooms.length > 0) {
+          setRooms((prev) =>
+            prev.map((staticRoom) => {
+              const dyn = data.rooms.find(
+                (r: any) =>
+                  r.roomId === staticRoom.id ||
+                  r.roomId === staticRoom.id.replace("-room", "").replace("-bungalow", "")
+              );
+              if (!dyn) return staticRoom;
+              return {
+                ...staticRoom,
+                name: dyn.name || staticRoom.name,
+                subtitle: dyn.subtitle || staticRoom.subtitle,
+                description: dyn.description || staticRoom.description,
+                price: dyn.priceLabel || `$${dyn.pricePerNight}` || staticRoom.price,
+                specs: dyn.specs || staticRoom.specs,
+                amenities: Array.isArray(dyn.amenities) && dyn.amenities.length > 0 ? dyn.amenities : staticRoom.amenities,
+                goodToKnow: Array.isArray(dyn.goodToKnow) && dyn.goodToKnow.length > 0 ? dyn.goodToKnow : staticRoom.goodToKnow,
+              };
+            })
+          );
+        }
+      })
+      .catch(() => {});
+
+    return () => {
+      ignore = true;
+    };
+  }, []);
 
   // Independent photo index state for each room
   const [photoIndices, setPhotoIndices] = useState<Record<string, number>>({
@@ -236,10 +269,10 @@ export default function RoomsSection({ onSelectPhoto }: RoomSectionProps) {
         <div className="scroll-reveal text-center max-w-3xl mx-auto mb-8 sm:mb-14">
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#C58E47]/15 border border-[#C58E47]/30 text-xs font-bold uppercase tracking-widest text-[#243D2C] mb-3">
             <Sparkles className="w-3.5 h-3.5 text-[#C58E47]" />
-            <span>Highland Sanctuary Accommodations</span>
+            <span>Guest Bedrooms &amp; Full Villa</span>
           </div>
           <h2 className="font-serif text-3xl sm:text-4xl lg:text-5xl font-normal text-[#17271D] tracking-tight mb-3 leading-tight">
-            Three Bedrooms. One Misty Haven.{" "}
+            Three Bedrooms. One Peaceful Mountain Home.{" "}
             <span className="font-serif italic font-normal text-[#A97633] inline-block mx-1">
               Nothing Else.
             </span>
@@ -296,7 +329,7 @@ export default function RoomsSection({ onSelectPhoto }: RoomSectionProps) {
                         <span className="text-[10px] uppercase font-mono tracking-wider text-white/75 block mb-0.5">
                           {room.name}
                         </span>
-                        <p className="font-serif italic text-lg sm:text-xl text-[#DFB775] font-light drop-shadow-md truncate">
+                        <p className="font-serif italic text-lg sm:text-xl text-[#DFB775] font-normal [text-shadow:0_2px_8px_rgba(0,0,0,0.85)] truncate">
                           {currentPhoto.caption}
                         </p>
                       </div>
@@ -459,26 +492,20 @@ export default function RoomsSection({ onSelectPhoto }: RoomSectionProps) {
                     {/* Dual Action Buttons & Accordion */}
                     <div>
                       <div className="flex flex-col sm:flex-row items-center gap-2.5 sm:gap-3 mb-4">
-                        <a
-                          href={`https://wa.me/94714194368?text=${encodeURIComponent(
-                            room.whatsappMsg
-                          )}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
+                        <Link
+                          href={`/booking?room=${room.id === "double-room" ? "double" : room.id === "triple-room" ? "triple" : "full"}`}
                           className="w-full sm:flex-1 min-h-[46px] inline-flex items-center justify-center gap-2 py-3 px-6 rounded-xl bg-[#C58E47] hover:bg-[#A97633] text-white text-xs sm:text-sm font-bold shadow-md hover:scale-102 active:scale-98 transition-all"
                         >
-                          <MessageCircle className="w-4 h-4 fill-current" />
-                          <span>Book via WhatsApp ➔</span>
-                        </a>
+                          <CheckCircle2 className="w-4 h-4 text-white" />
+                          <span>Reserve This Room</span>
+                        </Link>
 
                         <a
-                          href="https://wa.me/94714194368?text=Hello%20Susantha%2C%20I%20have%20a%20question%20about%20staying%20at%20Dawn%20Breezy%20Bungalow."
-                          target="_blank"
-                          rel="noopener noreferrer"
+                          href="#contact"
                           className="w-full sm:w-auto min-h-[46px] inline-flex items-center justify-center gap-2 py-3 px-5 rounded-xl bg-white hover:bg-[#F8F9F7] text-[#243D2C] border border-[#E2E6E3] text-xs sm:text-sm font-semibold transition-all hover:scale-102 active:scale-98"
                         >
                           <Users className="w-4 h-4 text-[#C58E47]" />
-                          <span>Ask Susantha</span>
+                          <span>Room Inquiries</span>
                         </a>
                       </div>
 

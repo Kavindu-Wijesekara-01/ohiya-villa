@@ -7,7 +7,7 @@ import {
   Clock,
   ShieldCheck,
   ArrowRight,
-  MessageCircle,
+  Car,
 } from "lucide-react";
 
 export default function TransportBanner() {
@@ -28,7 +28,7 @@ export default function TransportBanner() {
           <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/[0.06] border border-[#C58E47]/35 mb-4 backdrop-blur-md shadow-sm">
             <Compass className="w-3.5 h-3.5 text-[#D4A362] animate-pulse" />
             <span className="text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-[#F6EFE6]">
-              Seamless Travel • Horton Plains &amp; Beyond
+              Direct Transport • Horton Plains &amp; Scenic Trails
             </span>
           </div>
 
@@ -86,7 +86,7 @@ export default function TransportBanner() {
                     Private mountain tour car
                   </h3>
                   <span className="text-xs font-medium text-[#D4A362] shrink-0">
-                    Seats 4–5 guests
+                    Seats 4 to 5 guests
                   </span>
                 </div>
 
@@ -106,13 +106,11 @@ export default function TransportBanner() {
               {/* Action Button Row */}
               <div className="flex justify-end pt-2">
                 <a
-                  href="https://wa.me/94714194368?text=Hello%20Susantha%2C%20I%20would%20like%20to%20book%20the%20on-site%20private%20tour%20car%20for%20my%20stay%20at%20Dawn%20Breezy%20Bungalow."
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  href="#contact"
                   className="inline-flex items-center justify-center gap-1.5 px-6 py-2.5 rounded-full bg-[#C58E47] hover:bg-[#D69F56] text-[#0D1912] font-semibold text-xs sm:text-sm shadow-md transition-all active:scale-95 duration-200"
                 >
-                  <MessageCircle className="w-3.5 h-3.5 fill-current opacity-80" />
-                  <span>Book on WhatsApp</span>
+                  <Car className="w-3.5 h-3.5 opacity-80" />
+                  <span>Inquire About Car</span>
                 </a>
               </div>
             </div>
@@ -177,13 +175,11 @@ export default function TransportBanner() {
               {/* Action Button Row */}
               <div className="flex justify-end pt-2">
                 <a
-                  href="https://wa.me/94714194368?text=Hello%20Susantha%2C%20I%20would%20like%20to%20rent%20the%20on-site%20mountain%20scooters%20for%20my%20stay%20at%20Dawn%20Breezy%20Bungalow."
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  href="#contact"
                   className="inline-flex items-center justify-center gap-1.5 px-6 py-2.5 rounded-full bg-[#C58E47] hover:bg-[#D69F56] text-[#0D1912] font-semibold text-xs sm:text-sm shadow-md transition-all active:scale-95 duration-200"
                 >
-                  <MessageCircle className="w-3.5 h-3.5 fill-current opacity-80" />
-                  <span>Book on WhatsApp</span>
+                  <Compass className="w-3.5 h-3.5 opacity-80" />
+                  <span>Inquire About Scooters</span>
                 </a>
               </div>
             </div>

@@ -8,7 +8,7 @@ export default function PropertyHighlights() {
       icon: Train,
       badge: "3 Min Walk",
       title: "200m to Ohiya Station",
-      description: "Effortless 3-minute stroll from the railway platform with luggage assistance.",
+      description: "A simple 3-minute walk from the railway platform with free luggage assistance.",
     },
     {
       icon: Car,

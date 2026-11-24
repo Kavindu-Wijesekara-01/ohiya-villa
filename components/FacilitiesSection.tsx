@@ -137,9 +137,7 @@ export default function FacilitiesSection() {
                   Customized to your hiking schedule
                 </span>
                 <a
-                  href="https://wa.me/94714194368?text=Hello%20Susantha%2C%20I%20would%20like%20to%20inquire%20about%20the%20home-cooked%20breakfast%20and%20lunch%20options%20at%20Dawn%20Breezy%20Bungalow."
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  href="#contact"
                   className="w-full sm:w-auto min-h-[46px] inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-[#243D2C] hover:bg-[#17271D] text-white font-bold text-xs sm:text-sm transition-all shadow-xs hover:scale-102 active:scale-98"
                 >
                   <MessageCircle className="w-4 h-4 text-[#C58E47] fill-current" />

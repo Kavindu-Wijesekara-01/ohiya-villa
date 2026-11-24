@@ -1,10 +1,8 @@
 "use client";
 
 import Image from "next/image";
-import { useState, type FormEvent } from "react";
-import { Clock, MapPin, MessageCircle, Phone, Train } from "lucide-react";
-
-const WHATSAPP_NUMBER = "94714194368";
+import Link from "next/link";
+import { Clock, MapPin, MessageCircle, Phone, Train, ArrowRight, Sparkles } from "lucide-react";
 
 const NAV_LINKS = [
   { label: "Rooms & Rates", href: "#rooms" },
@@ -46,42 +44,7 @@ const PHONES = [
   },
 ].filter((p) => p.verified);
 
-const inputClass =
-  "w-full rounded-md border border-neutral-300 bg-white px-3.5 py-3 text-[15px] text-neutral-900 placeholder:text-neutral-400 focus:border-[#0E1712] focus:outline-none focus:ring-1 focus:ring-[#0E1712] transition-colors";
-
-const labelClass = "block text-sm font-medium text-neutral-700 mb-1.5";
-
 export default function ContactAndFooter() {
-  const [form, setForm] = useState({
-    name: "",
-    checkIn: "",
-    checkOut: "",
-    guests: "2",
-  });
-
-  const update =
-    (key: keyof typeof form) =>
-    (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
-      setForm((prev) => ({ ...prev, [key]: e.target.value }));
-
-  const handleSubmit = (e: FormEvent) => {
-    e.preventDefault();
-
-    const lines = [
-      "Hello Susantha, I would like to enquire about a stay at Dawn Breezy Bungalow, Ohiya.",
-      "",
-      `Name: ${form.name}`,
-      form.checkIn && `Check-in: ${form.checkIn}`,
-      form.checkOut && `Check-out: ${form.checkOut}`,
-      `Guests: ${form.guests}`,
-    ].filter(Boolean);
-
-    const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(
-      lines.join("\n")
-    )}`;
-    window.open(url, "_blank", "noopener,noreferrer");
-  };
-
   return (
     <footer
       id="contact"
@@ -100,7 +63,7 @@ export default function ContactAndFooter() {
           </p>
         </div>
 
-        {/* ───────── Contact details + enquiry form ───────── */}
+        {/* ───────── Contact details + Boutique Highland Sanctuary Card ───────── */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-16 pb-14 sm:pb-20">
           {/* Left: contact details */}
           <div className="lg:col-span-5 order-2 lg:order-1">
@@ -115,7 +78,7 @@ export default function ContactAndFooter() {
                     href={p.href}
                     {...(p.external
                       ? { target: "_blank", rel: "noopener noreferrer" }
-                      : {})}
+                    : {})}
                     className="flex items-center gap-4 py-4 group"
                   >
                     <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#17271D] text-[#C59B5F] group-hover:bg-[#C59B5F] group-hover:text-[#0E1712] transition-colors">
@@ -156,9 +119,9 @@ export default function ContactAndFooter() {
                   <Clock className="h-[18px] w-[18px]" />
                 </span>
                 <div className="min-w-0">
-                  <span className="block text-sm text-[#96A49B]">Check-in</span>
+                  <span className="block text-sm text-[#96A49B]">Check in</span>
                   <span className="block text-[15px] sm:text-base text-[#F2ECE1]">
-                    24-hour access, including late train arrivals
+                    Round the clock access, including late train arrivals
                   </span>
                 </div>
               </li>
@@ -170,91 +133,90 @@ export default function ContactAndFooter() {
             </p>
           </div>
 
-          {/* Right: enquiry form */}
+          {/* Right: Highland Sanctuary Showcase Card (Zero forms, Zero inputs, Pure villa atmosphere) */}
           <div className="lg:col-span-7 order-1 lg:order-2">
-            <form
-              onSubmit={handleSubmit}
-              className="bg-white text-neutral-900 p-6 sm:p-8 lg:p-10"
-            >
-              <h3 className="font-serif text-2xl sm:text-3xl text-[#0E1712] mb-6">
-                Send an enquiry
-              </h3>
+            <div className="bg-[#14231A] rounded-3xl p-6 sm:p-8 lg:p-9 border border-[#233F2C] shadow-2xl relative overflow-hidden flex flex-col justify-between h-full">
+              {/* Ambient Highland Glows */}
+              <div className="absolute top-0 right-0 w-72 h-72 bg-[#C58E47]/10 rounded-full blur-3xl pointer-events-none" />
+              <div className="absolute bottom-0 left-0 w-64 h-64 bg-[#233F2C]/30 rounded-full blur-3xl pointer-events-none" />
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-                <div className="sm:col-span-2">
-                  <label htmlFor="name" className={labelClass}>
-                    Full name
-                  </label>
-                  <input
-                    id="name"
-                    name="name"
-                    type="text"
-                    required
-                    autoComplete="name"
-                    value={form.name}
-                    onChange={update("name")}
-                    className={inputClass}
-                  />
+              <div className="relative z-10">
+                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#C58E47]/15 border border-[#C58E47]/30 text-xs font-semibold uppercase tracking-wider text-[#DFB775] mb-4">
+                  <Sparkles className="w-3.5 h-3.5 text-[#C58E47]" />
+                  <span>Highland Sanctuary • 1,774m Altitude</span>
                 </div>
 
-                <div>
-                  <label htmlFor="checkIn" className={labelClass}>
-                    Check-in
-                  </label>
-                  <input
-                    id="checkIn"
-                    name="checkIn"
-                    type="date"
-                    value={form.checkIn}
-                    onChange={update("checkIn")}
-                    className={inputClass}
-                  />
-                </div>
+                <h3 className="font-serif text-2xl sm:text-3xl font-normal text-[#F2ECE1] mb-3 leading-snug">
+                  Wake up above the clouds in quiet Ohiya
+                </h3>
 
-                <div>
-                  <label htmlFor="checkOut" className={labelClass}>
-                    Check-out
-                  </label>
-                  <input
-                    id="checkOut"
-                    name="checkOut"
-                    type="date"
-                    min={form.checkIn || undefined}
-                    value={form.checkOut}
-                    onChange={update("checkOut")}
-                    className={inputClass}
-                  />
-                </div>
+                <p className="text-sm sm:text-[15px] text-[#A6B5AB] leading-relaxed mb-6">
+                  Perched along Welimada Road, our family bungalow welcomes trekkers, couples, and traveling families. Reserve directly to guarantee personal care from host Susantha, flexible arrival times, and zero hidden platform charges.
+                </p>
 
-                <div className="sm:col-span-2">
-                  <label htmlFor="guests" className={labelClass}>
-                    Guests
-                  </label>
-                  <select
-                    id="guests"
-                    name="guests"
-                    value={form.guests}
-                    onChange={update("guests")}
-                    className={inputClass}
-                  >
-                    {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => (
-                      <option key={n} value={n}>
-                        {n} {n === 1 ? "guest" : "guests"}
-                      </option>
-                    ))}
-                    <option value="9+">9 or more</option>
-                  </select>
+                {/* 4 Feature Badges */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-8">
+                  <div className="flex items-center gap-3 p-3.5 rounded-2xl bg-[#0E1712]/70 border border-[#233F2C]">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#17271D] text-[#C59B5F]">
+                      <Train className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <div className="text-xs font-semibold text-[#F2ECE1]">200m from Station</div>
+                      <div className="text-[11px] text-[#839388]">3 minute walk, free luggage pickup</div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 p-3.5 rounded-2xl bg-[#0E1712]/70 border border-[#233F2C]">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#17271D] text-[#C59B5F]">
+                      <Clock className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <div className="text-xs font-semibold text-[#F2ECE1]">5:30 AM Horton Plains</div>
+                      <div className="text-[11px] text-[#839388]">On site car for sunrise safari</div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 p-3.5 rounded-2xl bg-[#0E1712]/70 border border-[#233F2C]">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#17271D] text-[#C59B5F]">
+                      <Sparkles className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <div className="text-xs font-semibold text-[#F2ECE1]">Warm Ceylon Meals</div>
+                      <div className="text-[11px] text-[#839388]">Fresh home cooked food on request</div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3 p-3.5 rounded-2xl bg-[#0E1712]/70 border border-[#233F2C]">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#17271D] text-[#C59B5F]">
+                      <MapPin className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <div className="text-xs font-semibold text-[#F2ECE1]">Zero Prepayment</div>
+                      <div className="text-[11px] text-[#839388]">Pay upon arrival at the bungalow</div>
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              <button
-                type="submit"
-                className="mt-7 w-full inline-flex items-center justify-center gap-2 rounded-md bg-[#0E1712] px-7 py-3.5 text-[15px] font-medium text-white hover:bg-[#1B2B21] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#0E1712] transition-colors"
-              >
-                <MessageCircle className="h-[18px] w-[18px]" />
-                Send on WhatsApp
-              </button>
-            </form>
+              {/* Direct Booking & Calling CTA Block */}
+              <div className="relative z-10 pt-4 border-t border-[#233F2C] flex flex-col sm:flex-row items-center gap-3">
+                <Link
+                  href="/booking"
+                  className="w-full sm:flex-1 inline-flex items-center justify-center gap-2 py-3.5 px-6 rounded-full bg-[#C58E47] hover:bg-[#D4A362] text-[#0D1912] font-bold text-xs sm:text-sm transition-all shadow-md hover:scale-102 active:scale-98"
+                >
+                  <span>Check Live Dates &amp; Reserve Online</span>
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+
+                <a
+                  href="tel:+94714194368"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 py-3.5 px-6 rounded-full bg-transparent hover:bg-white/5 text-[#F2ECE1] font-semibold text-xs sm:text-sm transition-all border border-[#2F4337]"
+                >
+                  <Phone className="w-4 h-4 text-[#C58E47]" />
+                  <span>Call Susantha</span>
+                </a>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -274,7 +236,7 @@ export default function ContactAndFooter() {
                 <Train className="h-[18px] w-[18px]" />
               </span>
               <p className="text-[15px] text-[#96A49B] leading-relaxed">
-                Travelling on the Colombo–Kandy–Badulla line? Message us your
+                Travelling on the Colombo to Kandy to Badulla line? Message us your
                 arrival time and we will meet you at the station. Luggage help
                 is free on request.
               </p>

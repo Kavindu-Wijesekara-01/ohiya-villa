@@ -1,30 +1,119 @@
+"use client";
+
+import { useState, useEffect } from "react";
 import Image from "next/image";
-import { Star, ShieldCheck, Heart, MessageSquareQuote, CheckCircle2, Award, Clock } from "lucide-react";
+import {
+  Star,
+  MessageSquareQuote,
+  CheckCircle2,
+  Award,
+  Clock,
+  PlusCircle,
+  X,
+  Send
+} from "lucide-react";
+
+interface ReviewItem {
+  _id?: string;
+  quote: string;
+  author: string;
+  origin: string;
+  tag: string;
+  rating?: number;
+}
+
+const DEFAULT_REVIEWS: ReviewItem[] = [
+  {
+    quote:
+      "The best location in Ohiya. Just a 3-minute stroll from the railway station. Susantha arranged our 5:30 AM vehicle to World’s End, and the hot water shower afterward was pure bliss.",
+    author: "David & Elena",
+    origin: "United Kingdom",
+    tag: "Couples Trekking Stay",
+    rating: 5,
+  },
+  {
+    quote:
+      "Waking up above the cloud canopy with a warm cup of Ceylon tea on the veranda was the highlight of our Sri Lankan trip. Genuine, humble hospitality and total peace.",
+    author: "Kasun & Family",
+    origin: "Colombo, Sri Lanka",
+    tag: "Family Weekend",
+    rating: 5,
+  },
+  {
+    quote:
+      "Clean, spacious rooms with private balconies facing the pine hills. No hassle with early trains or luggage. Susantha takes care of everything with quiet dedication.",
+    author: "Marc & Sophie",
+    origin: "France",
+    tag: "Highland Rail Explorers",
+    rating: 5,
+  },
+];
 
 export default function HostAndReviews() {
-  const guestHighlights = [
-    {
-      quote:
-        "The best location in Ohiya. Just a 3-minute stroll from the railway station. Susantha arranged our 5:30 AM vehicle to World’s End, and the hot water shower afterward was pure bliss.",
-      author: "David & Elena",
-      origin: "United Kingdom",
-      tag: "Couples Trekking Stay",
-    },
-    {
-      quote:
-        "Waking up above the cloud canopy with a warm cup of Ceylon tea on the veranda was the highlight of our Sri Lankan trip. Genuine, humble hospitality and total peace.",
-      author: "Kasun & Family",
-      origin: "Colombo, Sri Lanka",
-      tag: "Family Weekend",
-    },
-    {
-      quote:
-        "Clean, spacious rooms with private balconies facing the pine hills. No hassle with early trains or luggage. Susantha takes care of everything with quiet dedication.",
-      author: "Marc & Sophie",
-      origin: "France",
-      tag: "Highland Rail Explorers",
-    },
-  ];
+  const [reviews, setReviews] = useState<ReviewItem[]>(DEFAULT_REVIEWS);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [submitError, setSubmitError] = useState("");
+
+  const [author, setAuthor] = useState("");
+  const [origin, setOrigin] = useState("");
+  const [tag, setTag] = useState("Couples Trekking Stay");
+  const [rating, setRating] = useState(5);
+  const [quote, setQuote] = useState("");
+
+  // Fetch approved reviews from backend
+  useEffect(() => {
+    async function loadReviews() {
+      try {
+        const res = await fetch("/api/reviews");
+        if (res.ok) {
+          const data = await res.json();
+          if (data.reviews && data.reviews.length > 0) {
+            setReviews(data.reviews);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch live reviews:", err);
+      }
+    }
+    loadReviews();
+  }, []);
+
+  const handleSubmitReview = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitError("");
+    setIsSubmitting(true);
+
+    try {
+      const res = await fetch("/api/reviews", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          author,
+          origin,
+          tag,
+          rating,
+          quote,
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setSubmitSuccess(true);
+        setAuthor("");
+        setOrigin("");
+        setQuote("");
+        setRating(5);
+      } else {
+        setSubmitError(data.message || "Failed to submit review.");
+      }
+    } catch {
+      setSubmitError("Network error. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <section id="reviews" className="py-10 sm:py-16 lg:py-20 bg-[#F8F9F7]">
@@ -85,7 +174,7 @@ export default function HostAndReviews() {
               <div className="relative bg-[#F8F9F7] rounded-2xl p-6 sm:p-7 border border-[#E2E6E3] mb-7">
                 <MessageSquareQuote className="w-8 h-8 text-[#C58E47]/25 absolute top-5 right-5" />
                 <p className="font-serif italic text-base sm:text-lg text-[#1F2923] leading-relaxed">
-                  &ldquo;Every guest comes to Ohiya seeking something rare: true silence, misty dawn light, and restorative rest. I take personal pride in making sure your stay feels effortless, from greeting you at the station to preparing your sunrise trek.&rdquo;
+                  &ldquo;Every guest comes to Ohiya seeking something rare: true silence, misty dawn light, and restorative rest. I take personal care to ensure you feel welcome and comfortable, from greeting you at the station to preparing your sunrise trek.&rdquo;
                 </p>
               </div>
 
@@ -112,12 +201,10 @@ export default function HostAndReviews() {
                 Direct questions about your arrival?
               </span>
               <a
-                href="https://wa.me/94714194368?text=Hello%20Susantha%2C%20I%20have%20a%20question%20about%20staying%20at%20Dawn%20Breezy%20Bungalow."
-                target="_blank"
-                rel="noopener noreferrer"
+                href="#contact"
                 className="text-xs font-bold text-[#243D2C] hover:text-[#C58E47] underline underline-offset-4 transition-colors"
               >
-                Chat directly on WhatsApp →
+                Message host Susantha
               </a>
             </div>
           </div>
@@ -144,19 +231,19 @@ export default function HostAndReviews() {
                 </div>
               </div>
 
-              {/* Guest Quotes Carousel/Stack */}
-              <div className="space-y-4">
-                {guestHighlights.map((g, idx) => (
+              {/* Guest Quotes Stack (Dynamic from Backend) */}
+              <div className="space-y-4 max-h-[460px] overflow-y-auto pr-1">
+                {reviews.map((g, idx) => (
                   <div
-                    key={idx}
+                    key={g._id || idx}
                     className="p-4 sm:p-5 rounded-2xl bg-[#F8F9F7] border border-[#EAE5DC] text-xs sm:text-sm text-[#1F2923]"
                   >
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-[11px] font-semibold text-[#243D2C] bg-[#C58E47]/15 px-2.5 py-0.5 rounded-full border border-[#C58E47]/20">
-                        {g.tag}
+                        {g.tag || "Highland Stay"}
                       </span>
                       <div className="flex text-[#C58E47]">
-                        {[...Array(5)].map((_, i) => (
+                        {[...Array(g.rating || 5)].map((_, i) => (
                           <Star key={i} className="w-3 h-3 fill-current" />
                         ))}
                       </div>
@@ -172,13 +259,190 @@ export default function HostAndReviews() {
               </div>
             </div>
 
-            <div className="mt-6 pt-4 border-t border-[#EAE5DC] flex items-center justify-between text-xs text-[#4F6154] font-medium">
+            {/* Bottom Actions: Leave a Review */}
+            <div className="mt-6 pt-4 border-t border-[#EAE5DC] flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs text-[#4F6154] font-medium">
               <span>Verified guest experiences</span>
-              <span className="font-semibold text-[#243D2C]">100% Authentic Stays</span>
+              <button
+                type="button"
+                onClick={() => {
+                  setSubmitSuccess(false);
+                  setSubmitError("");
+                  setIsModalOpen(true);
+                }}
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#243D2C] hover:bg-[#17271D] text-white font-semibold text-xs transition-all shadow-xs hover:scale-102 active:scale-98"
+              >
+                <PlusCircle className="w-3.5 h-3.5 text-[#C58E47]" />
+                <span>Share Your Experience</span>
+              </button>
             </div>
           </div>
         </div>
       </div>
+
+      {/* Guest Review Submission Modal */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl relative">
+            <button
+              onClick={() => setIsModalOpen(false)}
+              className="absolute top-5 right-5 p-2 rounded-full text-gray-400 hover:text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            {submitSuccess ? (
+              <div className="text-center py-6">
+                <div className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto mb-3">
+                  <CheckCircle2 className="w-6 h-6" />
+                </div>
+                <h3 className="font-serif text-2xl font-bold text-[#243D2C] mb-2">
+                  Thank You for Your Feedback!
+                </h3>
+                <p className="text-xs sm:text-sm text-[#4F6154] leading-relaxed max-w-sm mx-auto mb-6">
+                  Your comment has been submitted to Susantha. It will appear on our live guest wall once verified.
+                </p>
+                <button
+                  onClick={() => setIsModalOpen(false)}
+                  className="px-6 py-2.5 rounded-full bg-[#243D2C] text-white text-xs font-bold"
+                >
+                  Close
+                </button>
+              </div>
+            ) : (
+              <div>
+                <div className="mb-4">
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#C58E47]">
+                    Guest Book
+                  </span>
+                  <h3 className="font-serif text-xl sm:text-2xl font-bold text-[#243D2C]">
+                    Leave a Mountain Review
+                  </h3>
+                  <p className="text-xs text-[#7B887E] mt-0.5">
+                    Share your experience at Dawn Breezy Bungalow with fellow travelers.
+                  </p>
+                </div>
+
+                <form onSubmit={handleSubmitReview} className="space-y-3.5">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-semibold text-[#1F2923] mb-1">
+                        Your Name *
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. David & Elena"
+                        value={author}
+                        onChange={(e) => setAuthor(e.target.value)}
+                        className="w-full bg-[#F8F9F7] border border-[#EAE5DC] rounded-xl px-3.5 py-2 text-xs text-[#1F2923] focus:outline-hidden focus:border-[#C58E47]"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-[#1F2923] mb-1">
+                        Country / City
+                      </label>
+                      <input
+                        type="text"
+                        placeholder="e.g. United Kingdom"
+                        value={origin}
+                        onChange={(e) => setOrigin(e.target.value)}
+                        className="w-full bg-[#F8F9F7] border border-[#EAE5DC] rounded-xl px-3.5 py-2 text-xs text-[#1F2923] focus:outline-hidden focus:border-[#C58E47]"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-semibold text-[#1F2923] mb-1">
+                        Trip Type
+                      </label>
+                      <select
+                        value={tag}
+                        onChange={(e) => setTag(e.target.value)}
+                        className="w-full bg-[#F8F9F7] border border-[#EAE5DC] rounded-xl px-3 py-2 text-xs text-[#1F2923] focus:outline-hidden focus:border-[#C58E47]"
+                      >
+                        <option value="Couples Trekking Stay">Couples Trekking Stay</option>
+                        <option value="Family Weekend">Family Weekend</option>
+                        <option value="Highland Rail Explorers">Highland Rail Explorers</option>
+                        <option value="Solo Nature Traveler">Solo Nature Traveler</option>
+                        <option value="Horton Plains Expedition">Horton Plains Expedition</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-semibold text-[#1F2923] mb-1">
+                        Rating
+                      </label>
+                      <div className="flex items-center gap-1.5 pt-1">
+                        {[1, 2, 3, 4, 5].map((star) => (
+                          <button
+                            key={star}
+                            type="button"
+                            onClick={() => setRating(star)}
+                            className="p-1 focus:outline-hidden"
+                          >
+                            <Star
+                              className={`w-5 h-5 ${
+                                star <= rating
+                                  ? "text-[#C58E47] fill-current"
+                                  : "text-gray-300"
+                              }`}
+                            />
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-[#1F2923] mb-1">
+                      Your Review / Experience *
+                    </label>
+                    <textarea
+                      rows={3}
+                      placeholder="Tell future guests about your stay, Susantha's hospitality, Horton Plains morning transport, or the mountain views..."
+                      value={quote}
+                      onChange={(e) => setQuote(e.target.value)}
+                      className="w-full bg-[#F8F9F7] border border-[#EAE5DC] rounded-xl p-3 text-xs text-[#1F2923] focus:outline-hidden focus:border-[#C58E47]"
+                      required
+                    />
+                  </div>
+
+                  {submitError && (
+                    <div className="text-xs text-red-600 bg-red-50 p-2.5 rounded-lg border border-red-200">
+                      {submitError}
+                    </div>
+                  )}
+
+                  <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#EAE5DC]">
+                    <button
+                      type="button"
+                      onClick={() => setIsModalOpen(false)}
+                      className="px-4 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-xs font-semibold text-[#4F6154]"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={isSubmitting}
+                      className="px-5 py-2 rounded-xl bg-[#243D2C] hover:bg-[#17271D] text-white text-xs font-bold shadow-xs flex items-center gap-1.5"
+                    >
+                      {isSubmitting ? (
+                        <span>Submitting...</span>
+                      ) : (
+                        <>
+                          <Send className="w-3.5 h-3.5" />
+                          <span>Submit for Host Approval</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </section>
   );
 }

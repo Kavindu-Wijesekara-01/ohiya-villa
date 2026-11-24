@@ -22,6 +22,7 @@ export default function Navbar() {
 
   const navLinks = [
     { name: "Rooms", href: "/#rooms" },
+    { name: "Booking", href: "/booking" },
     { name: "Gallery", href: "/#gallery" },
     { name: "Transport", href: "/#transport" },
     { name: "Facilities", href: "/#facilities" },
@@ -75,35 +76,31 @@ export default function Navbar() {
           aria-label="Main Navigation"
         >
           {navLinks.map((link) => (
-            <a
+            <Link
               key={link.name}
               href={link.href}
               className="text-xs lg:text-[13px] font-medium tracking-wide text-white/90 hover:text-[#D4A362] transition-colors duration-200"
             >
               {link.name}
-            </a>
+            </Link>
           ))}
         </nav>
 
         {/* Right CTA (Tablet & Desktop) - Clean Solid Button */}
         <div className="hidden md:flex items-center gap-2">
-          <a
-            href="https://wa.me/94714194368?text=Hello%20Susantha%2C%20I%20would%20like%20to%20inquire%20about%20booking%20at%20Dawn%20Breezy%20Bungalow%2C%20Ohiya."
-            target="_blank"
-            rel="noopener noreferrer"
+          <Link
+            href="/booking"
             className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-full bg-[#C58E47] hover:bg-[#A97633] text-white text-xs font-semibold transition-all duration-200 shadow-md hover:scale-103 active:scale-97"
           >
-            <span>Book Direct</span>
-          </a>
+            <span>Book Your Stay</span>
+          </Link>
         </div>
 
         {/* Mobile Actions Button (< 768px) */}
         <div className="flex md:hidden items-center gap-2">
           <a
-            href="https://wa.me/94714194368"
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label="Direct WhatsApp"
+            href="tel:+94714194368"
+            aria-label="Call Host Susantha"
             className="p-2 rounded-full bg-white/10 text-white/95 hover:text-[#D4A362] transition-colors"
           >
             <Phone className="w-4 h-4" />
@@ -125,32 +122,30 @@ export default function Navbar() {
         <div className="md:hidden w-full bg-[#0D1912] border-b border-[#233F2C] px-4 py-5 shadow-2xl animate-in fade-in slide-in-from-top-2 duration-200 text-white">
           <nav className="flex flex-col space-y-2" aria-label="Mobile Navigation">
             {navLinks.map((link) => (
-              <a
+              <Link
                 key={link.name}
                 href={link.href}
                 onClick={() => setIsOpen(false)}
                 className="text-sm font-medium text-white/90 hover:text-[#D4A362] py-2 px-3 rounded-xl hover:bg-white/10 transition-colors"
               >
                 {link.name}
-              </a>
+              </Link>
             ))}
             <div className="pt-3 border-t border-white/15 space-y-2.5">
-              <a
+              <Link
                 href="/#rooms"
                 onClick={() => setIsOpen(false)}
                 className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-full bg-white/15 hover:bg-white/25 text-white text-xs font-semibold border border-white/25 transition-colors shadow-xs"
               >
                 <span>View Rooms &amp; Rates</span>
-              </a>
-              <a
-                href="https://wa.me/94714194368?text=Hello%20Susantha%2C%20I%20would%20like%20to%20reserve%20a%20stay%20at%20Dawn%20Breezy%20Bungalow%2C%20Ohiya."
-                target="_blank"
-                rel="noopener noreferrer"
+              </Link>
+              <Link
+                href="/booking"
                 onClick={() => setIsOpen(false)}
                 className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-full bg-[#C58E47] text-white text-xs font-semibold hover:bg-[#A97633] transition-colors shadow-xs"
               >
-                <span>Reserve via WhatsApp</span>
-              </a>
+                <span>Book Direct Online</span>
+              </Link>
             </div>
           </nav>
         </div>
