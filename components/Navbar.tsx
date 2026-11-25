@@ -48,23 +48,24 @@ export default function Navbar() {
           href="/"
           className="flex items-center gap-2.5 sm:gap-3 group focus:outline-hidden"
         >
-          {/* Clear, High-Visibility Circular Logo Badge */}
-          <div className="relative w-9 h-9 sm:w-11 sm:h-11 rounded-full overflow-hidden border-2 border-[#C58E47]/85 shadow-md flex-shrink-0 bg-white ring-2 ring-[#DFB775]/15">
+          {/* Clear, High-Visibility Circular Logo Badge (cropped to fill seal cleanly) */}
+          <div className="relative w-11 h-11 sm:w-12 sm:h-12 rounded-full overflow-hidden border-2 border-[#DFB775] shadow-lg flex-shrink-0 bg-white ring-2 ring-[#DFB775]/20">
             <Image
               src="/logo.jpeg"
               alt="Dawn Breezy Bungalow Logo"
               fill
-              sizes="44px"
-              className="object-cover group-hover:scale-108 transition-transform duration-300"
+              sizes="96px"
+              quality={95}
+              className="object-cover scale-[1.24] group-hover:scale-[1.3] transition-transform duration-300"
               priority
             />
           </div>
-          {/* Clean, Refined Brand Typography - Stacked Two-Line Luxury Wordmark */}
+          {/* Clean, Bold Brand Typography - Stacked Two-Line Luxury Wordmark */}
           <div className="flex flex-col justify-center">
-            <span className="font-brand text-xs sm:text-[13px] tracking-[0.24em] uppercase font-bold text-white group-hover:text-[#DFB775] transition-colors leading-tight">
+            <span className="font-brand text-[13px] sm:text-[15px] tracking-[0.18em] uppercase font-extrabold text-white group-hover:text-[#DFB775] transition-colors leading-tight [text-shadow:0_2px_8px_rgba(0,0,0,0.75)]">
               Dawn Breezy
             </span>
-            <span className="font-brand text-[10.5px] sm:text-[11.5px] tracking-[0.34em] uppercase font-bold text-[#C58E47] group-hover:text-[#DFB775] transition-colors leading-tight mt-0.5">
+            <span className="font-brand text-[11px] sm:text-[12.5px] tracking-[0.28em] uppercase font-extrabold text-[#E8BE74] group-hover:text-[#F3CE8A] transition-colors leading-tight mt-0.5 [text-shadow:0_2px_8px_rgba(0,0,0,0.75)]">
               Bungalow
             </span>
           </div>

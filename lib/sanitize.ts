@@ -47,7 +47,7 @@ export function isDatabaseUnavailableError(error: unknown): boolean {
 
 export function safeErrorMessage(error: unknown, fallback: string = "An unexpected error occurred. Please try again."): string {
   if (isDatabaseUnavailableError(error)) {
-    console.error("[Database Unavailable]: MongoDB connection failed. Verify Atlas IP whitelist (0.0.0.0/0) and MONGODB_URI.");
+    console.error("[Database Unavailable]: MongoDB connection failed.", error instanceof Error ? `${error.name}: ${error.message}` : error);
     return "Database connection unavailable right now. Please try again shortly or contact Susantha directly.";
   }
   if (process.env.NODE_ENV !== "production" && error instanceof Error) {

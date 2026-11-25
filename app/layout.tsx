@@ -105,8 +105,8 @@ export default function RootLayout({
       className={`${playfair.variable} ${cinzel.variable} ${bodoniModa.variable} ${antonio.variable} ${plusJakarta.variable} ${dancingScript.variable} scroll-smooth antialiased`}
     >
       <body className="min-h-full flex flex-col bg-[#F8F9F7] text-[#1F2923] font-sans selection:bg-[#C58E47]/20 selection:text-[#243D2C]">
-        <ScrollObserver />
         {children}
+        <ScrollObserver />
       </body>
     </html>
   );

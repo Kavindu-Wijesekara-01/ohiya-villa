@@ -28,8 +28,15 @@ import {
   ArrowRight,
   Check,
   MessageCircle,
-  X
+  X,
+  Globe,
+  CreditCard,
+  Search,
+  Clock,
+  XCircle,
+  History
 } from "lucide-react";
+import { COUNTRIES } from "@/lib/countries";
 
 interface RoomOption {
   id: "double" | "triple" | "full";
@@ -170,10 +177,37 @@ function BookingContent() {
 
   const [guestCount, setGuestCount] = useState(2);
   const [customerName, setCustomerName] = useState("");
+  const [customerCountry, setCustomerCountry] = useState("");
+  const [idOrPassport, setIdOrPassport] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
   const [specialRequests, setSpecialRequests] = useState("");
   const [requestPickup, setRequestPickup] = useState(true);
+
+  const [bookingMode, setBookingMode] = useState<"book" | "history">("book");
+  const [lookupQuery, setLookupQuery] = useState("");
+  const [lookupLoading, setLookupLoading] = useState(false);
+  const [lookupError, setLookupError] = useState("");
+  const [lookupSearched, setLookupSearched] = useState(false);
+  const [lookupResults, setLookupResults] = useState<
+    Array<{
+      _id: string;
+      customerName: string;
+      customerCountry?: string;
+      idOrPassport?: string;
+      roomType: string;
+      roomName: string;
+      checkIn: string;
+      checkOut: string;
+      nights: number;
+      guests: number;
+      totalPrice: number;
+      currency: string;
+      status: "pending" | "confirmed" | "cancelled" | "completed";
+      specialRequests?: string;
+      createdAt: string;
+    }>
+  >([]);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
@@ -370,6 +404,8 @@ function BookingContent() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           customerName,
+          customerCountry,
+          idOrPassport,
           customerPhone,
           customerEmail,
           roomType: selectedRoom.id,
@@ -384,6 +420,9 @@ function BookingContent() {
       const data = await res.json();
       if (res.ok && data.success) {
         setConfirmedBooking(data.booking);
+        if (idOrPassport.trim()) {
+          setLookupQuery(idOrPassport.trim());
+        }
         fetchBookedDates(selectedRoom.id);
         window.scrollTo({ top: 0, behavior: "smooth" });
       } else {
@@ -394,6 +433,37 @@ function BookingContent() {
       setErrorMessage("A connection error occurred. Please verify your internet connection and try again.");
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleLookupBookings = async (overrideIdentity?: string) => {
+    const query = (overrideIdentity ?? lookupQuery).trim();
+    if (query.replace(/\s+/g, "").length < 4) {
+      setLookupError("Please enter at least 4 characters of your NIC or Passport number.");
+      return;
+    }
+
+    setLookupLoading(true);
+    setLookupError("");
+    setLookupSearched(false);
+
+    try {
+      const res = await fetch(
+        `/api/bookings/lookup?identity=${encodeURIComponent(query)}`,
+        { cache: "no-store" }
+      );
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setLookupResults(data.data || []);
+        setLookupSearched(true);
+      } else {
+        setLookupError(data.message || "Could not look up booking history.");
+        setLookupResults([]);
+      }
+    } catch {
+      setLookupError("Connection error while checking your booking history.");
+    } finally {
+      setLookupLoading(false);
     }
   };
 
@@ -563,21 +633,26 @@ function BookingContent() {
     });
 
     const waText = [
-      `Hello Susantha, I have placed a reservation at Dawn Breezy Bungalow!`,
+      `Hello Susantha, I have submitted a reservation request at Dawn Breezy Bungalow!`,
       ``,
       `Reference: ${refCode}`,
       `Guest Name: ${confirmedBooking.customerName}`,
-      `Phone: ${confirmedBooking.customerPhone}`,
+      confirmedBooking.customerCountry ? `Country: ${confirmedBooking.customerCountry}` : "",
+      confirmedBooking.idOrPassport ? `ID / Passport: ${confirmedBooking.idOrPassport}` : "",
+      `WhatsApp / Phone: ${confirmedBooking.customerPhone}`,
+      confirmedBooking.customerEmail ? `Email: ${confirmedBooking.customerEmail}` : "",
       `Accommodation: ${confirmedBooking.roomName}`,
       `Dates: ${checkInStr} to ${checkOutStr} (${confirmedBooking.nights} nights)`,
       `Guests: ${confirmedBooking.guests}`,
       `Total Payable: $${confirmedBooking.totalPrice}`,
+      `Current Status: ${confirmedBooking.status === "confirmed" ? "Confirmed" : "Pending Host Approval"}`,
       confirmedBooking.specialRequests ? `Special Request: ${confirmedBooking.specialRequests}` : "",
     ]
       .filter(Boolean)
       .join("\n");
 
     const waUrl = `https://wa.me/94714194368?text=${encodeURIComponent(waText)}`;
+    const isConfirmed = confirmedBooking.status === "confirmed";
 
     return (
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-12 sm:py-16">
@@ -596,19 +671,40 @@ function BookingContent() {
             <X className="w-5 h-5" />
           </button>
 
-          <div className="w-16 h-16 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto mb-4 shadow-sm">
-            <CheckCircle2 className="w-9 h-9" />
+          <div
+            className={`w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4 shadow-sm ${
+              isConfirmed
+                ? "bg-emerald-100 text-emerald-600"
+                : "bg-amber-100 text-amber-600"
+            }`}
+          >
+            {isConfirmed ? (
+              <CheckCircle2 className="w-9 h-9" />
+            ) : (
+              <Clock className="w-9 h-9" />
+            )}
           </div>
 
-          <span className="text-xs font-bold uppercase tracking-widest text-[#C58E47] bg-[#C58E47]/10 px-3.5 py-1.5 rounded-full border border-[#C58E47]/20">
-            Booking Confirmed in Guest Ledger
+          <span
+            className={`text-xs font-bold uppercase tracking-widest px-3.5 py-1.5 rounded-full border inline-block ${
+              isConfirmed
+                ? "text-emerald-700 bg-emerald-50 border-emerald-200"
+                : "text-amber-800 bg-amber-50 border-amber-200"
+            }`}
+          >
+            {isConfirmed
+              ? "Approved & Confirmed by Host"
+              : "Reservation Request Received • Pending Host Approval"}
           </span>
 
           <h2 className="font-serif text-2xl sm:text-4xl font-bold text-[#243D2C] mt-4 mb-2">
-            Your Stay is Reserved
+            {isConfirmed ? "Your Stay is Confirmed" : "Awaiting Host Confirmation"}
           </h2>
           <p className="text-sm text-[#58685D] max-w-lg mx-auto mb-6">
-            Thank you, {confirmedBooking.customerName}. Your reservation is officially registered at Dawn Breezy Bungalow. Host Susantha and family look forward to welcoming you to the Ohiya highlands.
+            Thank you, {confirmedBooking.customerName}.{" "}
+            {isConfirmed
+              ? "Your reservation is officially confirmed at Dawn Breezy Bungalow."
+              : "Your booking request is saved as Pending and sent to Host Susantha for direct approval. You can track live approval anytime using your NIC / Passport number."}
           </p>
 
           <div className="inline-block bg-[#FAF9F6] border border-[#EAE5DC] rounded-2xl px-5 py-2.5 mb-8">
@@ -620,27 +716,62 @@ function BookingContent() {
 
           {/* Details Table */}
           <div className="max-w-xl mx-auto bg-[#FAF9F6] rounded-2xl p-5 border border-[#EAE5DC] text-left text-xs sm:text-sm space-y-3 mb-8">
-            <div className="flex justify-between py-1 border-b border-[#EAE5DC]/80">
-              <span className="text-[#7B887E]">Accommodation:</span>
-              <span className="font-bold text-[#243D2C]">{confirmedBooking.roomName}</span>
+            <div className="flex justify-between py-1 border-b border-[#EAE5DC]/80 gap-2">
+              <span className="text-[#7B887E]">Guest &amp; Country:</span>
+              <span className="font-bold text-[#243D2C] text-right">
+                {confirmedBooking.customerName}
+                {confirmedBooking.customerCountry ? ` (${confirmedBooking.customerCountry})` : ""}
+              </span>
             </div>
-            <div className="flex justify-between py-1 border-b border-[#EAE5DC]/80">
+            {confirmedBooking.idOrPassport && (
+              <div className="flex justify-between py-1 border-b border-[#EAE5DC]/80 gap-2">
+                <span className="text-[#7B887E]">NIC / Passport Number:</span>
+                <span className="font-mono font-bold text-[#243D2C]">
+                  {confirmedBooking.idOrPassport}
+                </span>
+              </div>
+            )}
+            <div className="flex justify-between py-1 border-b border-[#EAE5DC]/80 gap-2">
+              <span className="text-[#7B887E]">WhatsApp / Contact:</span>
+              <span className="font-mono font-bold text-[#243D2C]">
+                {confirmedBooking.customerPhone}
+              </span>
+            </div>
+            {confirmedBooking.customerEmail && (
+              <div className="flex justify-between py-1 border-b border-[#EAE5DC]/80 gap-2">
+                <span className="text-[#7B887E]">Email:</span>
+                <span className="font-semibold text-[#243D2C] break-all text-right">
+                  {confirmedBooking.customerEmail}
+                </span>
+              </div>
+            )}
+            <div className="flex justify-between py-1 border-b border-[#EAE5DC]/80 gap-2">
+              <span className="text-[#7B887E]">Accommodation:</span>
+              <span className="font-bold text-[#243D2C] text-right">{confirmedBooking.roomName}</span>
+            </div>
+            <div className="flex justify-between py-1 border-b border-[#EAE5DC]/80 gap-2">
               <span className="text-[#7B887E]">Check-in Date:</span>
               <span className="font-bold text-[#243D2C]">{checkInStr}</span>
             </div>
-            <div className="flex justify-between py-1 border-b border-[#EAE5DC]/80">
+            <div className="flex justify-between py-1 border-b border-[#EAE5DC]/80 gap-2">
               <span className="text-[#7B887E]">Check-out Date:</span>
               <span className="font-bold text-[#243D2C]">{checkOutStr}</span>
             </div>
-            <div className="flex justify-between py-1 border-b border-[#EAE5DC]/80">
-              <span className="text-[#7B887E]">Duration & Guests:</span>
+            <div className="flex justify-between py-1 border-b border-[#EAE5DC]/80 gap-2">
+              <span className="text-[#7B887E]">Duration &amp; Guests:</span>
               <span className="font-bold text-[#243D2C]">
                 {confirmedBooking.nights} Nights • {confirmedBooking.guests} Guests
               </span>
             </div>
-            <div className="flex justify-between py-1 border-b border-[#EAE5DC]/80">
-              <span className="text-[#7B887E]">Ohiya Station Pickup:</span>
-              <span className="font-bold text-emerald-700">Complimentary (200m away)</span>
+            <div className="flex justify-between py-1 border-b border-[#EAE5DC]/80 gap-2">
+              <span className="text-[#7B887E]">Approval Status:</span>
+              <span
+                className={`font-bold ${
+                  isConfirmed ? "text-emerald-700" : "text-amber-700"
+                }`}
+              >
+                {isConfirmed ? "Confirmed by Host" : "Pending Host Approval"}
+              </span>
             </div>
             <div className="flex justify-between py-1 pt-2 text-base">
               <span className="font-bold text-[#243D2C]">Total Payable on Arrival:</span>
@@ -663,8 +794,25 @@ function BookingContent() {
             </div>
           </div>
 
-          {/* Action Buttons: WhatsApp Susantha, Call Susantha, and Close Receipt */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+          {/* Action Buttons: Track History, WhatsApp Susantha, Call Susantha, Close */}
+          <div className="flex flex-col sm:flex-row flex-wrap items-center justify-center gap-3">
+            {confirmedBooking.idOrPassport && (
+              <button
+                type="button"
+                onClick={() => {
+                  const identity = confirmedBooking.idOrPassport;
+                  setConfirmedBooking(null);
+                  setBookingMode("history");
+                  setLookupQuery(identity);
+                  handleLookupBookings(identity);
+                }}
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-3 rounded-full bg-[#C58E47] hover:bg-[#b07b38] text-white text-xs sm:text-sm font-bold shadow-md transition-all"
+              >
+                <History className="w-4 h-4" />
+                <span>Track Approval Status</span>
+              </button>
+            )}
+
             <a
               href={waUrl}
               target="_blank"
@@ -731,8 +879,209 @@ function BookingContent() {
             <span>Welcome Ceylon Tea</span>
           </div>
         </div>
+
+        {/* Mode Switcher: New Reservation vs Check Booking Status / Past History */}
+        <div className="mt-8 inline-flex flex-wrap items-center justify-center gap-2 bg-[#F2EFE9] p-1.5 rounded-2xl border border-[#EAE5DC]">
+          <button
+            type="button"
+            onClick={() => setBookingMode("book")}
+            className={`px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold inline-flex items-center gap-2 transition-all cursor-pointer ${
+              bookingMode === "book"
+                ? "bg-[#243D2C] text-white shadow-sm"
+                : "text-[#4F6154] hover:text-[#243D2C]"
+            }`}
+          >
+            <CalendarIcon className="w-4 h-4 text-[#DFB775]" />
+            <span>New Reservation</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setBookingMode("history")}
+            className={`px-4 sm:px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold inline-flex items-center gap-2 transition-all cursor-pointer ${
+              bookingMode === "history"
+                ? "bg-[#243D2C] text-white shadow-sm"
+                : "text-[#4F6154] hover:text-[#243D2C]"
+            }`}
+          >
+            <History className="w-4 h-4 text-[#DFB775]" />
+            <span>Check Status &amp; Past History</span>
+          </button>
+        </div>
       </div>
 
+      {bookingMode === "history" ? (
+        <div className="max-w-3xl mx-auto space-y-6">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 border border-[#EAE5DC] shadow-sm">
+            <span className="text-xs font-bold text-[#C58E47] uppercase tracking-wider block mb-1">
+              Guest Booking Lookup
+            </span>
+            <h2 className="font-serif text-2xl sm:text-3xl font-bold text-[#243D2C] mb-2">
+              Check Approval Status &amp; Stay History
+            </h2>
+            <p className="text-xs sm:text-sm text-[#58685D] mb-6">
+              Enter your National ID (NIC) or Passport number used during booking to see all your past &amp; upcoming reservations and whether Host Susantha has approved them.
+            </p>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleLookupBookings();
+              }}
+              className="flex flex-col sm:flex-row gap-3"
+            >
+              <div className="relative flex-1">
+                <CreditCard className="w-4 h-4 text-[#C58E47] absolute left-4 top-3.5" />
+                <input
+                  type="text"
+                  aria-label="NIC or Passport Number"
+                  value={lookupQuery}
+                  onChange={(e) => setLookupQuery(e.target.value)}
+                  className="w-full bg-[#FAF9F5] border border-[#EAE5DC] rounded-xl pl-11 pr-4 py-3 text-xs sm:text-sm text-[#1F2923] font-mono focus:outline-hidden focus:border-[#C58E47]"
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={lookupLoading}
+                className="px-6 py-3 rounded-xl bg-[#243D2C] hover:bg-[#192C1F] text-white text-xs sm:text-sm font-bold inline-flex items-center justify-center gap-2 transition-colors cursor-pointer shrink-0 disabled:opacity-60"
+              >
+                <Search className="w-4 h-4 text-[#DFB775]" />
+                <span>{lookupLoading ? "Searching..." : "Check Bookings"}</span>
+              </button>
+            </form>
+
+            {lookupError && (
+              <div className="mt-4 p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 flex-shrink-0 text-rose-500" />
+                <span>{lookupError}</span>
+              </div>
+            )}
+          </div>
+
+          {lookupSearched && (
+            <div className="space-y-4">
+              {lookupResults.length === 0 ? (
+                <div className="bg-white rounded-3xl p-8 sm:p-10 text-center border border-[#EAE5DC]">
+                  <History className="w-10 h-10 text-[#C58E47]/50 mx-auto mb-3" />
+                  <h3 className="font-serif text-xl font-bold text-[#243D2C]">
+                    No Bookings Found
+                  </h3>
+                  <p className="text-xs sm:text-sm text-[#58685D] mt-1 max-w-md mx-auto">
+                    We could not find any reservations matching <span className="font-mono font-bold text-[#243D2C]">{lookupQuery}</span>. Please double-check your NIC or Passport number.
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <div className="flex flex-wrap items-center justify-between gap-2 px-1">
+                    <p className="text-xs sm:text-sm font-semibold text-[#243D2C]">
+                      Found {lookupResults.length}{" "}
+                      {lookupResults.length === 1 ? "reservation" : "reservations"} for{" "}
+                      <span className="font-mono text-[#C58E47]">{lookupQuery.toUpperCase()}</span>
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => handleLookupBookings()}
+                      className="text-xs font-bold text-[#243D2C] hover:text-[#C58E47] underline cursor-pointer"
+                    >
+                      Refresh Status
+                    </button>
+                  </div>
+
+                  <div className="space-y-3">
+                    {lookupResults.map((item) => {
+                      const statusMeta =
+                        item.status === "confirmed"
+                          ? {
+                              label: "Approved by Admin (Confirmed)",
+                              cls: "bg-emerald-50 text-emerald-800 border-emerald-200",
+                              Icon: CheckCircle2,
+                            }
+                          : item.status === "pending"
+                          ? {
+                              label: "Pending Admin Approval",
+                              cls: "bg-amber-50 text-amber-800 border-amber-200",
+                              Icon: Clock,
+                            }
+                          : item.status === "completed"
+                          ? {
+                              label: "Completed Stay",
+                              cls: "bg-slate-100 text-slate-700 border-slate-200",
+                              Icon: Check,
+                            }
+                          : {
+                              label: "Declined / Cancelled",
+                              cls: "bg-red-50 text-red-800 border-red-200",
+                              Icon: XCircle,
+                            };
+
+                      const StatusIcon = statusMeta.Icon;
+
+                      return (
+                        <div
+                          key={item._id}
+                          className="bg-white rounded-2xl border border-[#EAE5DC] p-5 shadow-xs space-y-3"
+                        >
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-[#EAE5DC]">
+                            <div>
+                              <span className="text-[11px] font-mono text-[#7B887E] block">
+                                Ref #DBB-{item._id.slice(-6).toUpperCase()} • Submitted{" "}
+                                {new Date(item.createdAt).toLocaleDateString()}
+                              </span>
+                              <h4 className="font-serif text-lg font-bold text-[#243D2C]">
+                                {item.roomName}
+                              </h4>
+                            </div>
+                            <span
+                              className={`inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full border self-start sm:self-center ${statusMeta.cls}`}
+                            >
+                              <StatusIcon className="w-3.5 h-3.5" />
+                              <span>{statusMeta.label}</span>
+                            </span>
+                          </div>
+
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                            <div>
+                              <span className="text-[11px] text-[#7B887E] block">Guest</span>
+                              <span className="font-bold text-[#243D2C]">
+                                {item.customerName}
+                                {item.customerCountry ? ` (${item.customerCountry})` : ""}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-[11px] text-[#7B887E] block">Check-In → Check-Out</span>
+                              <span className="font-semibold text-[#243D2C]">
+                                {toVillaYMD(item.checkIn)} → {toVillaYMD(item.checkOut)}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-[11px] text-[#7B887E] block">Stay &amp; Guests</span>
+                              <span className="font-semibold text-[#243D2C]">
+                                {item.nights} {item.nights === 1 ? "night" : "nights"} • {item.guests}{" "}
+                                {item.guests === 1 ? "guest" : "guests"}
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-[11px] text-[#7B887E] block">Total on Arrival</span>
+                              <span className="font-bold text-[#C58E47] font-mono text-sm">
+                                ${item.totalPrice}
+                              </span>
+                            </div>
+                          </div>
+
+                          {item.specialRequests && (
+                            <p className="text-[11px] text-[#58685D] bg-[#FAF9F5] px-3 py-2 rounded-xl border border-[#EAE5DC]">
+                              Note: {item.specialRequests}
+                            </p>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+        </div>
+      ) : (
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-start">
         {/* Left Column: Room Chooser, Dual Calendars, Guest Form (8 Cols) */}
         <div className="lg:col-span-8 space-y-10 sm:space-y-12">
@@ -891,51 +1240,132 @@ function BookingContent() {
             </div>
 
             <form onSubmit={handleSubmitBooking} className="bg-white rounded-3xl p-6 sm:p-8 border border-[#EAE5DC] shadow-sm space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-[#1F2923] mb-1.5">
-                  Full Name *
-                </label>
-                <input
-                  type="text"
-                  placeholder="e.g. David Smith"
-                  value={customerName}
-                  onChange={(e) => setCustomerName(e.target.value)}
-                  className="w-full bg-[#FAF9F5] border border-[#EAE5DC] rounded-xl px-4 py-3 text-xs sm:text-sm text-[#1F2923] focus:outline-hidden focus:border-[#C58E47]"
-                  required
-                />
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-[#1F2923] mb-1.5">
+                    Full Name *
+                  </label>
+                  <input
+                    type="text"
+                    value={customerName}
+                    onChange={(e) => setCustomerName(e.target.value)}
+                    className="w-full bg-[#FAF9F5] border border-[#EAE5DC] rounded-xl px-4 py-3 text-xs sm:text-sm text-[#1F2923] focus:outline-hidden focus:border-[#C58E47]"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-[#1F2923] mb-1.5">
+                    Country / Nationality *
+                  </label>
+                  <div className="relative">
+                    <Globe className="w-4 h-4 text-[#C58E47] absolute left-3.5 top-3.5 pointer-events-none" />
+                    <select
+                      value={customerCountry}
+                      onChange={(e) => setCustomerCountry(e.target.value)}
+                      required
+                      className="w-full bg-[#FAF9F5] border border-[#EAE5DC] rounded-xl pl-10 pr-4 py-3 text-xs sm:text-sm text-[#1F2923] focus:outline-hidden focus:border-[#C58E47]"
+                    >
+                      <option value="" disabled>
+                        Select your country...
+                      </option>
+                      {COUNTRIES.map((c) => (
+                        <option key={c.code} value={c.name}>
+                          {c.name} ({c.dialCode})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-[#1F2923] mb-1.5">
-                    Phone / Contact Number *
+                    National ID (NIC) or Passport Number *
+                  </label>
+                  <div className="relative">
+                    <CreditCard className="w-4 h-4 text-[#C58E47] absolute left-3.5 top-3.5 pointer-events-none" />
+                    <input
+                      type="text"
+                      value={idOrPassport}
+                      onChange={(e) => setIdOrPassport(e.target.value)}
+                      className="w-full bg-[#FAF9F5] border border-[#EAE5DC] rounded-xl pl-10 pr-4 py-3 text-xs sm:text-sm text-[#1F2923] font-mono focus:outline-hidden focus:border-[#C58E47]"
+                      required
+                      minLength={5}
+                    />
+                  </div>
+                  <span className="text-[10px] text-[#7B887E] mt-1 block">
+                    Required for check-in registration &amp; tracking your approval status
+                  </span>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-[#1F2923] mb-1.5">
+                    Number of Guests *
+                  </label>
+                  <div className="bg-[#FAF9F5] border border-[#EAE5DC] rounded-xl px-4 py-2.5 flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-xs sm:text-sm font-bold text-[#243D2C]">
+                      <Users className="w-4 h-4 text-[#C58E47]" />
+                      <span>
+                        {guestCount} {guestCount === 1 ? "Guest" : "Guests"}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setGuestCount(Math.max(1, guestCount - 1))}
+                        className="w-8 h-8 rounded-lg bg-white border border-[#EAE5DC] flex items-center justify-center text-sm font-bold text-[#243D2C] hover:bg-gray-100 cursor-pointer"
+                        aria-label="Decrease guest count"
+                      >
+                        -
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setGuestCount(Math.min(10, guestCount + 1))}
+                        className="w-8 h-8 rounded-lg bg-white border border-[#EAE5DC] flex items-center justify-center text-sm font-bold text-[#243D2C] hover:bg-gray-100 cursor-pointer"
+                        aria-label="Increase guest count"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                  <span className="text-[10px] text-[#7B887E] mt-1 block">
+                    Total adults &amp; children in your group (1–10)
+                  </span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-[#1F2923] mb-1.5">
+                    WhatsApp / Contact Number *
                   </label>
                   <input
                     type="tel"
-                    placeholder="e.g. +94 71 234 5678"
                     value={customerPhone}
                     onChange={(e) => setCustomerPhone(e.target.value)}
                     className="w-full bg-[#FAF9F5] border border-[#EAE5DC] rounded-xl px-4 py-3 text-xs sm:text-sm text-[#1F2923] focus:outline-hidden focus:border-[#C58E47]"
                     required
                   />
                   <span className="text-[10px] text-[#7B887E] mt-1 block">
-                    Used by Susantha for station pickup coordination
+                    Used by Susantha for WhatsApp confirmation &amp; station pickup
                   </span>
                 </div>
 
                 <div>
                   <label className="block text-xs font-bold text-[#1F2923] mb-1.5">
-                    Email Address (Optional)
+                    Email Address *
                   </label>
                   <input
                     type="email"
-                    placeholder="e.g. david@example.com"
                     value={customerEmail}
                     onChange={(e) => setCustomerEmail(e.target.value)}
                     className="w-full bg-[#FAF9F5] border border-[#EAE5DC] rounded-xl px-4 py-3 text-xs sm:text-sm text-[#1F2923] focus:outline-hidden focus:border-[#C58E47]"
+                    required
                   />
                   <span className="text-[10px] text-[#7B887E] mt-1 block">
-                    Optional for booking voucher copy
+                    Your booking receipt &amp; confirmation reference email
                   </span>
                 </div>
               </div>
@@ -968,7 +1398,6 @@ function BookingContent() {
                 </label>
                 <textarea
                   rows={3}
-                  placeholder="e.g. Arriving on 2:15 PM train from Kandy. Would also love to book the 5:30 AM Horton Plains sunrise car and have home-cooked dinner upon arrival..."
                   value={specialRequests}
                   onChange={(e) => setSpecialRequests(e.target.value)}
                   className="w-full bg-[#FAF9F5] border border-[#EAE5DC] rounded-xl p-3.5 text-xs sm:text-sm text-[#1F2923] focus:outline-hidden focus:border-[#C58E47]"
@@ -989,16 +1418,19 @@ function BookingContent() {
                   className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-[#243D2C] to-[#1A2E21] hover:from-[#1A2E21] hover:to-[#112016] text-white font-bold text-sm sm:text-base transition-all shadow-lg shadow-[#243D2C]/25 flex items-center justify-center gap-2.5 hover:scale-101 active:scale-99 cursor-pointer"
                 >
                   {isSubmitting ? (
-                    <span>Registering Your Reservation...</span>
+                    <span>Submitting Request...</span>
                   ) : (
                     <>
                       <CheckCircle2 className="w-5 h-5 text-[#DFB775]" />
                       <span>
-                        Confirm Stay at Dawn Breezy • ${totalPrice}
+                        Submit Reservation Request • ${totalPrice}
                       </span>
                     </>
                   )}
                 </button>
+                <p className="text-[11px] text-center text-[#7B887E] mt-2">
+                  Requests enter as <strong className="text-[#243D2C]">Pending</strong> until approved by Host Susantha. Check anytime using your NIC / Passport number.
+                </p>
               </div>
             </form>
           </section>
@@ -1122,6 +1554,7 @@ function BookingContent() {
           </div>
         </div>
       </div>
+      )}
     </div>
   );
 }

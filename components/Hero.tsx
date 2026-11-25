@@ -11,8 +11,66 @@ import {
   Mountain,
   Compass,
   Sparkles,
-  ChevronDown
+  ChevronDown,
+  Users,
+  Star
 } from "lucide-react";
+
+function AnimatedCounter({
+  target,
+  duration = 2400,
+  decimals = 0,
+}: {
+  target: number;
+  duration?: number;
+  decimals?: number;
+}) {
+  const spanRef = useRef<HTMLSpanElement>(null);
+
+  useEffect(() => {
+    const el = spanRef.current;
+    if (!el) return;
+
+    const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const formatValue = (val: number) =>
+      decimals > 0 ? val.toFixed(decimals) : Math.round(val).toLocaleString();
+
+    if (prefersReduced) {
+      el.textContent = formatValue(target);
+      return;
+    }
+
+    let rafId = 0;
+    let lastRendered = "";
+    const start = performance.now();
+
+    const step = (now: number) => {
+      const progress = Math.min((now - start) / duration, 1);
+      // Silky-smooth exponential ease-out for luxury deceleration
+      const eased = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress);
+      const current = target * eased;
+      const formatted = formatValue(current);
+
+      if (formatted !== lastRendered) {
+        el.textContent = formatted;
+        lastRendered = formatted;
+      }
+
+      if (progress < 1) {
+        rafId = requestAnimationFrame(step);
+      }
+    };
+
+    rafId = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(rafId);
+  }, [target, duration, decimals]);
+
+  return (
+    <span ref={spanRef} className="tabular-nums">
+      {decimals > 0 ? (0).toFixed(decimals) : "0"}
+    </span>
+  );
+}
 
 const HERO_BACKGROUNDS = [
   {
@@ -122,9 +180,8 @@ export default function Hero() {
         {HERO_BACKGROUNDS.map((bg, idx) => (
           <div
             key={bg.url}
-            className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${
-              idx === bgIndex ? "opacity-100" : "opacity-0 pointer-events-none"
-            }`}
+            className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${idx === bgIndex ? "opacity-100" : "opacity-0 pointer-events-none"
+              }`}
           >
             <Image
               src={bg.url}
@@ -132,9 +189,8 @@ export default function Hero() {
               fill
               priority={idx === 0}
               sizes="100vw"
-              className={`object-cover object-center transition-transform duration-[6000ms] ease-out transform-gpu ${
-                idx === bgIndex ? "scale-105" : "scale-100"
-              }`}
+              className={`object-cover object-center transition-transform duration-[6000ms] ease-out transform-gpu ${idx === bgIndex ? "scale-105" : "scale-100"
+                }`}
             />
           </div>
         ))}
@@ -172,20 +228,73 @@ export default function Hero() {
             </div>
 
             {/* Main Headline - Condensed Architectural Display with Signature Dancing Script Overlap */}
-            <h1 className="animate-in fade-in duration-700 slide-in-from-bottom-3 delay-100 flex flex-col items-center justify-center text-center max-w-4xl mx-auto px-2 mb-3.5 sm:mb-4.5">
-              <span className="font-antonio font-bold text-[3.25rem] xs:text-[3.65rem] sm:text-6xl md:text-7xl lg:text-8xl xl:text-[6.5rem] tracking-tight uppercase leading-[0.9] sm:leading-[0.88] bg-gradient-to-b from-white via-[#FFF7E8] to-[#E5DAC8] bg-clip-text text-transparent [text-shadow:0_4px_24px_rgba(0,0,0,0.75)] select-none relative z-0">
+            <h1 className="animate-in fade-in duration-700 slide-in-from-bottom-3 delay-100 flex flex-col items-center justify-center text-center max-w-4xl mx-auto px-2 mb-2.5 sm:mb-3.5">
+              <span className="font-antonio font-bold text-[3.85rem] sm:text-7xl md:text-8xl lg:text-9xl xl:text-[6.5rem] tracking-tight uppercase leading-[0.9] sm:leading-[0.88] text-white [text-shadow:0_4px_24px_rgba(0,0,0,0.85)] select-none relative z-0">
                 Wake Up Above
               </span>
-              <span className="font-dancing font-bold text-[3.85rem] xs:text-[4.25rem] sm:text-6xl md:text-7xl lg:text-8xl xl:text-[6.5rem] normal-case text-[#DFB775] [text-shadow:0_4px_18px_rgba(0,0,0,0.85),0_1px_3px_rgba(0,0,0,0.9)] leading-[1.0] sm:leading-[1.0] -mt-4 xs:-mt-5 sm:-mt-6 md:-mt-8 lg:-mt-10 relative z-10 inline-block select-none">
+              <span className="font-dancing font-bold text-[4.5rem] sm:text-7xl md:text-8xl lg:text-9xl xl:text-[6.5rem] normal-case text-[#DFB775] [text-shadow:0_4px_18px_rgba(0,0,0,0.85),0_1px_3px_rgba(0,0,0,0.9)] leading-[1.0] sm:leading-[1.0] -mt-5 sm:-mt-6 md:-mt-8 lg:-mt-10 relative z-10 inline-block select-none">
                 The Clouds
               </span>
             </h1>
           </div>
 
           {/* Subheadline - Stays grounded in its balanced position */}
-          <p className="animate-in fade-in duration-700 slide-in-from-bottom-3 delay-200 max-w-xl text-xs sm:text-sm md:text-base text-white/90 font-normal leading-relaxed drop-shadow-sm px-2 mb-7 sm:mb-9 md:mb-10">
-            A quiet family-run bungalow in Ohiya, offering panoramic pine valley views and easy morning trips to Horton Plains.
+          <p className="animate-in fade-in duration-700 slide-in-from-bottom-3 delay-200 max-w-xl text-xs sm:text-sm md:text-base text-white/90 font-normal leading-relaxed drop-shadow-sm px-2 mb-5 sm:mb-7">
+            A quiet family run bungalow in Ohiya, offering panoramic pine valley views and easy morning trips to Horton Plains.
           </p>
+
+          {/* Plain Borderless Animated Count Strip (Alpine Height • Satisfied Clients • Location Score) */}
+          <div
+            aria-label="Bungalow highlights statistics"
+            className="animate-in fade-in duration-1000 slide-in-from-bottom-4 delay-150 w-full max-w-[360px] sm:max-w-xl mx-auto mt-1 mb-8 sm:mt-2 sm:mb-9 grid grid-cols-3 gap-2 sm:gap-8"
+          >
+            <div className="flex flex-col items-center justify-center text-center">
+              <div className="flex items-baseline justify-center gap-0.5 [text-shadow:0_4px_18px_rgba(0,0,0,0.9)]">
+                <span className="font-sans text-[1.75rem] sm:text-4xl md:text-[2.5rem] font-extrabold text-white tracking-tight leading-none">
+                  <AnimatedCounter target={1775} duration={2400} />
+                </span>
+                <span className="font-sans text-sm sm:text-lg font-bold text-[#DFB775]">
+                  m
+                </span>
+              </div>
+              <span className="mt-1.5 flex items-center justify-center gap-1.5 text-[9.5px] sm:text-xs uppercase tracking-[0.06em] sm:tracking-[0.14em] text-white/85 font-semibold leading-tight [text-shadow:0_2px_8px_rgba(0,0,0,0.9)]">
+                <Mountain className="hidden sm:inline-block w-3.5 h-3.5 text-[#DFB775] shrink-0" />
+                <span>Alpine Height</span>
+              </span>
+            </div>
+
+            <div className="flex flex-col items-center justify-center text-center">
+              <div className="flex items-baseline justify-center gap-0.5 [text-shadow:0_4px_18px_rgba(0,0,0,0.9)]">
+                <span className="font-sans text-[1.75rem] sm:text-4xl md:text-[2.5rem] font-extrabold text-white tracking-tight leading-none">
+                  <AnimatedCounter target={60} duration={2200} />
+                </span>
+                <span className="font-sans text-sm sm:text-lg font-bold text-[#DFB775]">
+                  +
+                </span>
+              </div>
+              <span className="mt-1.5 flex items-center justify-center gap-1.5 text-[9.5px] sm:text-xs uppercase tracking-[0.06em] sm:tracking-[0.14em] text-white/85 font-semibold leading-tight [text-shadow:0_2px_8px_rgba(0,0,0,0.9)]">
+                <Users className="hidden sm:inline-block w-3.5 h-3.5 text-[#DFB775] shrink-0" />
+                <span>Satisfied Clients</span>
+              </span>
+            </div>
+
+            <div className="flex flex-col items-center justify-center text-center">
+              <div className="flex items-baseline justify-center gap-0.5 [text-shadow:0_4px_18px_rgba(0,0,0,0.9)]">
+                <span className="font-sans text-[1.75rem] sm:text-4xl md:text-[2.5rem] font-extrabold text-white tracking-tight leading-none">
+                  <AnimatedCounter target={9.2} duration={2200} decimals={1} />
+                </span>
+                <span className="font-sans text-xs sm:text-base font-bold text-[#DFB775]">
+                  /10
+                </span>
+              </div>
+              <span className="mt-1.5 flex items-center justify-center gap-1.5 text-[9.5px] sm:text-xs uppercase tracking-[0.06em] sm:tracking-[0.14em] text-white/85 font-semibold leading-tight [text-shadow:0_2px_8px_rgba(0,0,0,0.9)]">
+                <Star className="hidden sm:inline-block w-3.5 h-3.5 text-[#DFB775] fill-[#DFB775] shrink-0" />
+                <span>Location Score</span>
+              </span>
+            </div>
+          </div>
+
+
 
           {/* Balanced Action Buttons Block */}
           <div className="animate-in fade-in duration-700 slide-in-from-bottom-3 delay-300 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 w-full sm:w-auto">

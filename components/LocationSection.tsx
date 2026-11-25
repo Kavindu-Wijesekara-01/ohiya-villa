@@ -10,18 +10,35 @@ import {
   Compass,
   ArrowRight,
   Sparkles,
-  Clock
+  Clock,
+  ChevronDown,
+  ChevronUp
 } from "lucide-react";
 import { ATTRACTIONS } from "@/data/attractions";
+import ScrollReveal from "@/components/ScrollReveal";
+
+const INITIAL_VISIBLE_COUNT = 6;
 
 export default function LocationSection() {
   const [filter, setFilter] = useState<"all" | "railway" | "attractions">("all");
+  const [showAll, setShowAll] = useState(false);
 
   const filteredAttractions = ATTRACTIONS.filter((item) => {
     if (filter === "railway") return item.category === "railway";
     if (filter === "attractions") return item.category === "attractions";
     return true;
   });
+
+  const hasMore = filteredAttractions.length > INITIAL_VISIBLE_COUNT;
+  const visibleAttractions = showAll
+    ? filteredAttractions
+    : filteredAttractions.slice(0, INITIAL_VISIBLE_COUNT);
+  const remainingCount = filteredAttractions.length - INITIAL_VISIBLE_COUNT;
+
+  const handleFilterChange = (nextFilter: "all" | "railway" | "attractions") => {
+    setFilter(nextFilter);
+    setShowAll(false);
+  };
 
   return (
     <section id="nearby" className="py-10 sm:py-16 lg:py-20 bg-white">
@@ -39,55 +56,37 @@ export default function LocationSection() {
             Prime Location &amp; Nearby Attractions
           </h2>
 
-          {/* Highland Feature Badges Strip */}
-          <div className="flex flex-wrap items-center justify-center gap-1.5 sm:gap-3 pt-1">
-            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#F8F9F7] border border-[#E2E6E3] text-xs font-semibold text-[#243D2C] shadow-2xs">
-              <Sparkles className="w-3.5 h-3.5 text-[#C58E47]" />
-              <span>10 Handpicked Viewpoints</span>
-            </span>
-            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#F8F9F7] border border-[#E2E6E3] text-xs font-semibold text-[#243D2C] shadow-2xs">
-              <Train className="w-3.5 h-3.5 text-[#C58E47]" />
-              <span>3 Historic Railway Summits</span>
-            </span>
-            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#F8F9F7] border border-[#E2E6E3] text-xs font-semibold text-[#243D2C] shadow-2xs">
-              <Mountain className="w-3.5 h-3.5 text-[#C58E47]" />
-              <span>7 Nature &amp; Waterfall Sights</span>
-            </span>
-            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#F8F9F7] border border-[#E2E6E3] text-xs font-semibold text-[#243D2C] shadow-2xs">
-              <MapPin className="w-3.5 h-3.5 text-[#C58E47]" />
-              <span>200m from Ohiya Station</span>
-            </span>
-          </div>
+
         </div>
 
         {/* Filter Pills: Horizontally Scrollable on Mobile */}
         <div className="scroll-reveal delay-100 flex items-center gap-1.5 sm:gap-2 overflow-x-auto no-scrollbar pb-1 sm:pb-0 justify-start sm:justify-center p-1.5 bg-[#FAF9F5] rounded-2xl border border-[#EAE5DC] max-w-full sm:w-fit mx-auto shadow-2xs mb-6 sm:mb-8">
           <button
             type="button"
-            onClick={() => setFilter("all")}
+            onClick={() => handleFilterChange("all")}
             className={`whitespace-nowrap flex-shrink-0 px-3.5 sm:px-5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all ${filter === "all"
-                ? "bg-[#243D2C] text-white shadow-xs"
-                : "text-[#4F6154] hover:text-[#1F2923]"
+              ? "bg-[#243D2C] text-white shadow-xs"
+              : "text-[#4F6154] hover:text-[#1F2923]"
               }`}
           >
             All Highlights ({ATTRACTIONS.length})
           </button>
           <button
             type="button"
-            onClick={() => setFilter("railway")}
+            onClick={() => handleFilterChange("railway")}
             className={`whitespace-nowrap flex-shrink-0 px-3.5 sm:px-5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all ${filter === "railway"
-                ? "bg-[#243D2C] text-white shadow-xs"
-                : "text-[#4F6154] hover:text-[#1F2923]"
+              ? "bg-[#243D2C] text-white shadow-xs"
+              : "text-[#4F6154] hover:text-[#1F2923]"
               }`}
           >
             Railway &amp; Stations (3)
           </button>
           <button
             type="button"
-            onClick={() => setFilter("attractions")}
+            onClick={() => handleFilterChange("attractions")}
             className={`whitespace-nowrap flex-shrink-0 px-3.5 sm:px-5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all ${filter === "attractions"
-                ? "bg-[#243D2C] text-white shadow-xs"
-                : "text-[#4F6154] hover:text-[#1F2923]"
+              ? "bg-[#243D2C] text-white shadow-xs"
+              : "text-[#4F6154] hover:text-[#1F2923]"
               }`}
           >
             Nature &amp; Sights (7)
@@ -96,12 +95,12 @@ export default function LocationSection() {
 
         {/* Attractions Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
-          {filteredAttractions.map((item) => {
+          {visibleAttractions.map((item, idx) => {
             const Icon = item.category === "railway" ? Train : Mountain;
             return (
+              <ScrollReveal key={item.slug} variant="card" delayMs={(idx % 3) * 110} className="flex">
               <div
-                key={item.slug}
-                className="editorial-card group flex flex-col bg-[#FAF8F4] hover:bg-white rounded-[26px] border border-[#E6DFD3] hover:border-[#DFB775] overflow-hidden"
+                className="editorial-card group flex flex-col w-full bg-[#FAF8F4] hover:bg-white rounded-[26px] border border-[#E6DFD3] hover:border-[#DFB775] overflow-hidden"
               >
                 {/* Real Photo Thumbnail */}
                 <Link
@@ -182,9 +181,32 @@ export default function LocationSection() {
                   </div>
                 </div>
               </div>
+              </ScrollReveal>
             );
           })}
         </div>
+
+        {hasMore && (
+          <div className="mt-8 sm:mt-10 flex justify-center">
+            <button
+              type="button"
+              onClick={() => setShowAll((prev) => !prev)}
+              className="inline-flex items-center justify-center gap-2 px-7 py-3.5 rounded-full bg-[#243D2C] hover:bg-[#192B1F] text-white text-xs sm:text-sm font-bold shadow-md hover:shadow-lg transition-all cursor-pointer border border-[#DFB775]/40"
+            >
+              {showAll ? (
+                <>
+                  <span>Show Less</span>
+                  <ChevronUp className="w-4 h-4 text-[#DFB775]" />
+                </>
+              ) : (
+                <>
+                  <span>View More ({remainingCount} More)</span>
+                  <ChevronDown className="w-4 h-4 text-[#DFB775]" />
+                </>
+              )}
+            </button>
+          </div>
+        )}
       </div>
     </section>
   );

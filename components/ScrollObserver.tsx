@@ -1,13 +1,14 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { usePathname } from "next/navigation";
 
 export default function ScrollObserver() {
   const progressBarRef = useRef<HTMLDivElement>(null);
+  const pathname = usePathname();
 
   useEffect(() => {
-    // Hardware-accelerated Scroll Progress Indicator at the top of the viewport
-    let animationFrameId: number;
+    let animationFrameId = 0;
 
     const updateScrollProgress = () => {
       if (!progressBarRef.current) return;
@@ -29,7 +30,7 @@ export default function ScrollObserver() {
       window.removeEventListener("scroll", handleScroll);
       cancelAnimationFrame(animationFrameId);
     };
-  }, []);
+  }, [pathname]);
 
   return (
     <div

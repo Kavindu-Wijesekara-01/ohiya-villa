@@ -107,6 +107,8 @@ export async function POST(req: NextRequest) {
       customerName,
       customerPhone,
       customerEmail,
+      customerCountry,
+      idOrPassport,
       roomType,
       roomName,
       checkIn,
@@ -120,6 +122,9 @@ export async function POST(req: NextRequest) {
     const cleanName = sanitizeText(customerName, 80);
     const cleanPhone = sanitizeText(customerPhone, 30);
     const cleanEmail = customerEmail ? sanitizeText(customerEmail, 120) : "";
+    const cleanCountry = customerCountry ? sanitizeText(customerCountry, 80) : "";
+    const cleanIdOrPassport = idOrPassport ? sanitizeText(idOrPassport, 50) : "";
+    const normalizedIdOrPassport = cleanIdOrPassport.replace(/\s+/g, "").toUpperCase();
     const cleanRequests = specialRequests ? sanitizeText(specialRequests, 500) : "";
 
     if (!cleanName || cleanName.length < 2) {
@@ -131,7 +136,31 @@ export async function POST(req: NextRequest) {
 
     if (!isValidPhone(cleanPhone)) {
       return NextResponse.json(
-        { success: false, message: "Please provide a valid contact number." },
+        { success: false, message: "Please provide a valid WhatsApp / contact number." },
+        { status: 400 }
+      );
+    }
+
+    if (!isAdmin && (!cleanCountry || cleanCountry.length < 2)) {
+      return NextResponse.json(
+        { success: false, message: "Please select your country." },
+        { status: 400 }
+      );
+    }
+
+    if (!isAdmin && normalizedIdOrPassport.length < 5) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Please provide a valid NIC or Passport number (at least 5 characters).",
+        },
+        { status: 400 }
+      );
+    }
+
+    if (!isAdmin && (!cleanEmail || !isValidEmail(cleanEmail))) {
+      return NextResponse.json(
+        { success: false, message: "Please provide a valid email address." },
         { status: 400 }
       );
     }
@@ -207,18 +236,16 @@ export async function POST(req: NextRequest) {
     const autoTotalPrice = ratePerNight * nights;
     const finalTotalPrice =
       isAdmin &&
-      typeof requestedTotalPrice === "number" &&
-      Number.isFinite(requestedTotalPrice) &&
-      requestedTotalPrice >= 0
+        typeof requestedTotalPrice === "number" &&
+        Number.isFinite(requestedTotalPrice) &&
+        requestedTotalPrice >= 0
         ? Math.round(requestedTotalPrice)
         : autoTotalPrice;
 
+    // Public /booking requests always start as "pending" even if host is logged in;
+    // Admin manual bookings explicitly send status="confirmed" and are directly approved.
     const finalStatus: "pending" | "confirmed" =
-      isAdmin && requestedStatus === "pending"
-        ? "pending"
-        : isAdmin && requestedStatus === "confirmed"
-        ? "confirmed"
-        : isAdmin
+      isAdmin && requestedStatus === "confirmed"
         ? "confirmed"
         : "pending";
 
@@ -243,6 +270,9 @@ export async function POST(req: NextRequest) {
         customerName: cleanName,
         customerPhone: cleanPhone,
         customerEmail: cleanEmail,
+        customerCountry: cleanCountry,
+        idOrPassport: cleanIdOrPassport,
+        idOrPassportNormalized: normalizedIdOrPassport,
         roomType: validRoomType,
         roomName: sanitizeText(roomName, 80) || computedRoomName,
         checkIn: parsedIn.date,
@@ -303,6 +333,8 @@ export async function POST(req: NextRequest) {
       booking: {
         _id: newBooking._id,
         customerName: newBooking.customerName,
+        customerCountry: newBooking.customerCountry,
+        idOrPassport: newBooking.idOrPassport,
         customerPhone: newBooking.customerPhone,
         customerEmail: newBooking.customerEmail,
         roomType: newBooking.roomType,

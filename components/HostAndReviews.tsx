@@ -330,7 +330,6 @@ export default function HostAndReviews() {
                       </label>
                       <input
                         type="text"
-                        placeholder="e.g. David & Elena"
                         value={author}
                         onChange={(e) => setAuthor(e.target.value)}
                         className="w-full bg-[#F8F9F7] border border-[#EAE5DC] rounded-xl px-3.5 py-2 text-xs text-[#1F2923] focus:outline-hidden focus:border-[#C58E47]"
@@ -343,7 +342,6 @@ export default function HostAndReviews() {
                       </label>
                       <input
                         type="text"
-                        placeholder="e.g. United Kingdom"
                         value={origin}
                         onChange={(e) => setOrigin(e.target.value)}
                         className="w-full bg-[#F8F9F7] border border-[#EAE5DC] rounded-xl px-3.5 py-2 text-xs text-[#1F2923] focus:outline-hidden focus:border-[#C58E47]"
@@ -400,7 +398,6 @@ export default function HostAndReviews() {
                     </label>
                     <textarea
                       rows={3}
-                      placeholder="Tell future guests about your stay, Susantha's hospitality, Horton Plains morning transport, or the mountain views..."
                       value={quote}
                       onChange={(e) => setQuote(e.target.value)}
                       className="w-full bg-[#F8F9F7] border border-[#EAE5DC] rounded-xl p-3 text-xs text-[#1F2923] focus:outline-hidden focus:border-[#C58E47]"

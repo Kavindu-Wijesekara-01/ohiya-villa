@@ -105,11 +105,35 @@ h1, h2, h3, .font-serif-heading {
 }
 
 /* =========================================================
-   LIGHTWEIGHT, HIGH-IMPACT HARDWARE-ACCELERATED ANIMATIONS
+   LUXURY SLOW EDITORIAL SCROLL-REVEAL ANIMATIONS
    ========================================================= */
 
-/* All content sections are 100% visible, fully accessible, zero blank spaces */
+@keyframes smoothSectionReveal {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 56px, 0) scale(0.975);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes smoothCardReveal {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 48px, 0) scale(0.965);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+/* SSR & initial hydration safe default */
+[data-sr="ssr"],
 .scroll-reveal,
+.scroll-reveal-section,
 .scroll-reveal-card,
 .scroll-reveal-img,
 .scroll-reveal-scale,
@@ -117,22 +141,48 @@ h1, h2, h3, .font-serif-heading {
 .scroll-reveal-left,
 .scroll-reveal-right,
 .scroll-reveal-vehicle {
-  opacity: 1 !important;
-  transform: translate3d(0, 0, 0) !important;
-  visibility: visible !important;
+  opacity: 1;
 }
 
+[data-sr="pending"] {
+  opacity: 0;
+  transform: translate3d(0, 56px, 0) scale(0.975);
+  will-change: opacity, transform;
+}
+
+[data-sr="pending"][data-sr-kind="card"] {
+  opacity: 0;
+  transform: translate3d(0, 48px, 0) scale(0.965);
+  will-change: opacity, transform;
+}
+
+[data-sr="visible"] {
+  opacity: 1;
+  animation: smoothSectionReveal 1350ms cubic-bezier(0.16, 1, 0.3, 1) var(--sr-d, 0ms) backwards;
+}
+
+[data-sr="visible"][data-sr-kind="card"] {
+  opacity: 1;
+  animation: smoothCardReveal 1200ms cubic-bezier(0.16, 1, 0.3, 1) var(--sr-d, 0ms) backwards;
+}
+
+[data-sr-delay="1"] { --sr-d: 110ms; }
+[data-sr-delay="2"] { --sr-d: 220ms; }
+[data-sr-delay="3"] { --sr-d: 330ms; }
+[data-sr-delay="4"] { --sr-d: 440ms; }
+[data-sr-delay="5"] { --sr-d: 550ms; }
+
 /* Cascading Stagger Delays */
-.delay-50  { transition-delay: 50ms; }
-.delay-75  { transition-delay: 75ms; }
-.delay-100 { transition-delay: 100ms; }
-.delay-150 { transition-delay: 150ms; }
-.delay-200 { transition-delay: 200ms; }
-.delay-250 { transition-delay: 250ms; }
-.delay-300 { transition-delay: 300ms; }
-.delay-350 { transition-delay: 350ms; }
-.delay-400 { transition-delay: 400ms; }
-.delay-500 { transition-delay: 500ms; }
+.delay-50  { --sr-d: 80ms; }
+.delay-75  { --sr-d: 120ms; }
+.delay-100 { --sr-d: 160ms; }
+.delay-150 { --sr-d: 220ms; }
+.delay-200 { --sr-d: 280ms; }
+.delay-250 { --sr-d: 340ms; }
+.delay-300 { --sr-d: 400ms; }
+.delay-350 { --sr-d: 460ms; }
+.delay-400 { --sr-d: 520ms; }
+.delay-500 { --sr-d: 640ms; }
 
 /* Micro-interaction: Subtle Organic Floating (Pill Badges & Highlights) */
 @keyframes floatGentle {
@@ -242,7 +292,9 @@ h1, h2, h3, .font-serif-heading {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  [data-sr],
   .scroll-reveal,
+  .scroll-reveal-section,
   .scroll-reveal-card,
   .scroll-reveal-img,
   .scroll-reveal-scale,
@@ -253,6 +305,7 @@ h1, h2, h3, .font-serif-heading {
     opacity: 1 !important;
     transform: none !important;
     filter: none !important;
+    animation: none !important;
     transition: none !important;
   }
   .hover-lift {

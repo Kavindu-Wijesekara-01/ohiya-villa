@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import AdminRoomCalendars from "@/components/AdminRoomCalendars";
 import {
   calculateNightsYMD,
   getDefaultRoomMeta,
@@ -10,6 +11,7 @@ import {
   toVillaYMD,
   RoomType,
 } from "@/lib/bookingUtils";
+import { COUNTRIES } from "@/lib/countries";
 import {
   Calendar,
   Image as ImageIcon,
@@ -32,12 +34,14 @@ import {
   Search,
   AlertCircle,
   Lock,
-  Sparkles,
   UploadCloud,
   Bed,
   Edit3,
   Save,
-  Check
+  Check,
+  Globe,
+  CreditCard,
+  MessageCircle
 } from "lucide-react";
 
 interface BookingItem {
@@ -45,6 +49,8 @@ interface BookingItem {
   customerName: string;
   customerPhone: string;
   customerEmail?: string;
+  customerCountry?: string;
+  idOrPassport?: string;
   roomType: string;
   roomName: string;
   checkIn: string;
@@ -131,6 +137,8 @@ export default function AdminPage() {
   const [loadingManualBooked, setLoadingManualBooked] = useState(false);
   const [manualBooking, setManualBooking] = useState({
     customerName: "",
+    customerCountry: "Sri Lanka",
+    idOrPassport: "",
     customerPhone: "",
     customerEmail: "",
     roomType: "double" as RoomType,
@@ -143,6 +151,7 @@ export default function AdminPage() {
     sourceChannel: "Walk-in / Direct Call",
     specialRequests: "",
   });
+  const [confirmDeleteBookingId, setConfirmDeleteBookingId] = useState<string | null>(null);
 
   // Gallery Add Modal
   const [isAddPhotoOpen, setIsAddPhotoOpen] = useState(false);
@@ -214,7 +223,7 @@ export default function AdminPage() {
       try {
         const [statsRes, bookingsRes, reviewsRes, galleryRes, roomsRes] = await Promise.all([
           fetch("/api/admin/stats"),
-          fetch(`/api/bookings?status=${bookingFilter}`),
+          fetch("/api/bookings?status=all"),
           fetch("/api/reviews?admin=true"),
           fetch("/api/gallery?admin=true"),
           fetch("/api/rooms?admin=true"),
@@ -254,7 +263,7 @@ export default function AdminPage() {
     }
 
     loadAdminData();
-  }, [isAuthenticated, bookingFilter, refreshKey]);
+  }, [isAuthenticated, refreshKey]);
 
   // Login handler
   const handleLogin = async (e: React.FormEvent) => {
@@ -304,7 +313,7 @@ export default function AdminPage() {
           setManualBookedRanges(data.bookedRanges);
         }
       })
-      .catch(() => {})
+      .catch(() => { })
       .finally(() => {
         if (!ignore) setLoadingManualBooked(false);
       });
@@ -343,17 +352,19 @@ export default function AdminPage() {
     return null;
   })();
 
-  const openManualBookingModal = () => {
+  const openManualBookingModal = (prefillRoom: RoomType = "double", prefillCheckIn?: string) => {
     const todayYMD = toVillaYMD(new Date());
     setManualBookingError("");
     setManualBooking({
       customerName: "",
+      customerCountry: "Sri Lanka",
+      idOrPassport: "",
       customerPhone: "",
       customerEmail: "",
-      roomType: "double",
-      checkIn: todayYMD,
+      roomType: prefillRoom,
+      checkIn: prefillCheckIn || todayYMD,
       checkOut: "",
-      guests: 2,
+      guests: prefillRoom === "full" ? 6 : prefillRoom === "triple" ? 3 : 2,
       status: "confirmed",
       useCustomPrice: false,
       customPrice: 0,
@@ -396,6 +407,8 @@ export default function AdminPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           customerName: manualBooking.customerName,
+          customerCountry: manualBooking.customerCountry,
+          idOrPassport: manualBooking.idOrPassport,
           customerPhone: manualBooking.customerPhone,
           customerEmail: manualBooking.customerEmail,
           roomType: manualBooking.roomType,
@@ -463,13 +476,21 @@ export default function AdminPage() {
 
   // Delete Booking
   const handleDeleteBooking = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this booking record?")) return;
     setBookingActionError("");
     try {
       const res = await fetch(`/api/bookings/${id}`, { method: "DELETE" });
-      if (res.ok) setRefreshKey((k) => k + 1);
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        setConfirmDeleteBookingId(null);
+        setBookingActionSuccess("Booking record deleted.");
+        setTimeout(() => setBookingActionSuccess(""), 4000);
+        setRefreshKey((k) => k + 1);
+      } else {
+        setBookingActionError(data.message || "Unable to delete booking record.");
+      }
     } catch (e) {
       console.error("Error deleting booking:", e);
+      setBookingActionError("Connection error while deleting booking record.");
     }
   };
 
@@ -646,7 +667,7 @@ export default function AdminPage() {
           {/* Logo Badge */}
           <div className="flex flex-col items-center text-center mb-7">
             <div className="relative w-16 h-16 rounded-full overflow-hidden border-2 border-[#C58E47] shadow-lg mb-3 bg-white">
-              <Image src="/logo.jpeg" alt="Dawn Breezy Bungalow Logo" fill className="object-cover" />
+              <Image src="/logo.jpeg" alt="Dawn Breezy Bungalow Logo" fill sizes="128px" className="object-cover scale-[1.24]" />
             </div>
             <h1 className="font-serif text-2xl font-bold text-white tracking-wide">
               Dawn Breezy Bungalow
@@ -666,7 +687,6 @@ export default function AdminPage() {
                   type="password"
                   value={passwordInput}
                   onChange={(e) => setPasswordInput(e.target.value)}
-                  placeholder="Enter admin password"
                   className="w-full bg-[#0D1912] border border-[#233F2C] rounded-xl px-4 py-3 text-sm text-white focus:outline-hidden focus:border-[#C58E47] transition-colors"
                   required
                 />
@@ -713,13 +733,17 @@ export default function AdminPage() {
     );
   }
 
-  // Filter Bookings by Search
+  // Filter Bookings by Status & Search
   const filteredBookings = bookings.filter((b) => {
+    if (bookingFilter !== "all" && b.status !== bookingFilter) return false;
     if (!bookingSearch) return true;
     const s = bookingSearch.toLowerCase();
     return (
       b.customerName.toLowerCase().includes(s) ||
       b.customerPhone.toLowerCase().includes(s) ||
+      (b.customerCountry || "").toLowerCase().includes(s) ||
+      (b.idOrPassport || "").toLowerCase().includes(s) ||
+      (b.customerEmail || "").toLowerCase().includes(s) ||
       b.roomName.toLowerCase().includes(s)
     );
   });
@@ -732,37 +756,34 @@ export default function AdminPage() {
   });
 
   return (
-    <div className="min-h-screen bg-[#F8F9F7] text-[#1F2923] font-sans flex flex-col">
-      {/* Top Navbar */}
+    <div className="min-h-screen bg-[#F8F9F7] text-[#1F2923] font-sans flex flex-col overflow-x-hidden">
+      {/* Top Navbar - Clean & Fully Mobile Responsive */}
       <header className="bg-[#17271D] border-b border-[#233F2C] text-white sticky top-0 z-40 shadow-md">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="relative w-10 h-10 rounded-full overflow-hidden border border-[#C58E47] bg-white">
-              <Image src="/logo.jpeg" alt="Logo" fill className="object-cover" />
+        <div className="max-w-7xl mx-auto px-3.5 sm:px-6 lg:px-8 h-14 sm:h-18 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+            <div className="relative w-9 h-9 sm:w-10 sm:h-10 rounded-full overflow-hidden border border-[#C58E47] bg-white shrink-0">
+              <Image src="/logo.jpeg" alt="Logo" fill sizes="80px" className="object-cover scale-[1.24]" />
             </div>
-            <div>
+            <div className="min-w-0">
               <div className="flex items-center gap-2">
-                <span className="font-serif text-base sm:text-lg font-bold tracking-wide">
+                <span className="font-serif text-sm sm:text-lg font-bold tracking-wide truncate">
                   Dawn Breezy Bungalow
                 </span>
-                <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded-full bg-[#C58E47]/20 text-[#DFB775] border border-[#C58E47]/30">
+                <span className="hidden sm:inline-block text-[10px] uppercase font-mono px-2 py-0.5 rounded-full bg-[#C58E47]/20 text-[#DFB775] border border-[#C58E47]/30 whitespace-nowrap shrink-0">
                   Host Admin
                 </span>
-              </div>
-              <div className="text-[11px] text-[#A5B0A8] flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 inline-block" />
-                <span>System Online</span>
               </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-2.5 sm:gap-4">
+          <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
             <Link
               href="/"
               target="_blank"
-              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/15 text-xs text-white transition-colors"
+              className="inline-flex items-center gap-1.5 p-2 sm:px-3 sm:py-1.5 rounded-xl bg-white/10 hover:bg-white/15 text-xs text-white transition-colors"
+              title="View Public Site"
             >
-              <span>View Public Site</span>
+              <span className="hidden sm:inline">View Public Site</span>
               <ExternalLink className="w-3.5 h-3.5" />
             </Link>
 
@@ -776,7 +797,8 @@ export default function AdminPage() {
 
             <button
               onClick={handleLogout}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-red-950/60 hover:bg-red-900 border border-red-800/40 text-red-200 text-xs font-semibold transition-colors"
+              className="inline-flex items-center gap-1.5 p-2 sm:px-3 sm:py-1.5 rounded-xl bg-red-950/60 hover:bg-red-900 border border-red-800/40 text-red-200 text-xs font-semibold transition-colors"
+              title="Logout"
             >
               <LogOut className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Logout</span>
@@ -786,31 +808,31 @@ export default function AdminPage() {
       </header>
 
       {/* Main Container */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 flex-1 w-full">
-        {/* Navigation Tabs */}
-        <div className="flex items-center gap-2 border-b border-[#EAE5DC] pb-4 mb-6 sm:mb-8 overflow-x-auto">
+      <div className="max-w-7xl mx-auto px-3.5 sm:px-6 lg:px-8 py-4 sm:py-7 flex-1 w-full">
+        {/* Navigation Tabs - Clean Wrapping Pills (No Mobile Scrollbar Bar) */}
+        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 border-b border-[#EAE5DC] pb-3.5 mb-5 sm:mb-7">
           <button
             onClick={() => setActiveTab("overview")}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap ${activeTab === "overview"
+            className={`flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap ${activeTab === "overview"
               ? "bg-[#243D2C] text-white shadow-xs"
               : "bg-white text-[#4F6154] hover:bg-gray-100 border border-[#EAE5DC]"
               }`}
           >
-            <LayoutDashboard className="w-4 h-4" />
-            <span>Dashboard Overview</span>
+            <LayoutDashboard className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            <span>Overview</span>
           </button>
 
           <button
             onClick={() => setActiveTab("bookings")}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap relative ${activeTab === "bookings"
+            className={`flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap ${activeTab === "bookings"
               ? "bg-[#243D2C] text-white shadow-xs"
               : "bg-white text-[#4F6154] hover:bg-gray-100 border border-[#EAE5DC]"
               }`}
           >
-            <Calendar className="w-4 h-4" />
-            <span>Bookings &amp; Inquiries</span>
+            <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            <span>Bookings</span>
             {stats && stats.pendingBookings > 0 && (
-              <span className="w-5 h-5 rounded-full bg-[#C58E47] text-white text-[10px] font-bold flex items-center justify-center">
+              <span className="min-w-4 h-4 px-1 rounded-full bg-[#C58E47] text-white text-[10px] font-bold flex items-center justify-center">
                 {stats.pendingBookings}
               </span>
             )}
@@ -818,15 +840,15 @@ export default function AdminPage() {
 
           <button
             onClick={() => setActiveTab("reviews")}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap relative ${activeTab === "reviews"
+            className={`flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap ${activeTab === "reviews"
               ? "bg-[#243D2C] text-white shadow-xs"
               : "bg-white text-[#4F6154] hover:bg-gray-100 border border-[#EAE5DC]"
               }`}
           >
-            <MessageSquare className="w-4 h-4" />
-            <span>Guest Comments Approval</span>
+            <MessageSquare className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            <span>Reviews</span>
             {stats && stats.pendingReviews > 0 && (
-              <span className="w-5 h-5 rounded-full bg-amber-600 text-white text-[10px] font-bold flex items-center justify-center animate-bounce">
+              <span className="min-w-4 h-4 px-1 rounded-full bg-amber-600 text-white text-[10px] font-bold flex items-center justify-center">
                 {stats.pendingReviews}
               </span>
             )}
@@ -834,13 +856,13 @@ export default function AdminPage() {
 
           <button
             onClick={() => setActiveTab("gallery")}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap ${activeTab === "gallery"
+            className={`flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap ${activeTab === "gallery"
               ? "bg-[#243D2C] text-white shadow-xs"
               : "bg-white text-[#4F6154] hover:bg-gray-100 border border-[#EAE5DC]"
               }`}
           >
-            <ImageIcon className="w-4 h-4" />
-            <span>Customize Gallery</span>
+            <ImageIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            <span>Gallery</span>
             <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-gray-100 text-[#4F6154] font-mono">
               {gallery.length}
             </span>
@@ -848,13 +870,13 @@ export default function AdminPage() {
 
           <button
             onClick={() => setActiveTab("rooms")}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap ${activeTab === "rooms"
+            className={`flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all whitespace-nowrap ${activeTab === "rooms"
               ? "bg-[#243D2C] text-white shadow-xs"
               : "bg-white text-[#4F6154] hover:bg-gray-100 border border-[#EAE5DC]"
               }`}
           >
-            <Bed className="w-4 h-4" />
-            <span>Room Rates &amp; Packages</span>
+            <Bed className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+            <span>Rooms</span>
             <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[#C58E47]/20 text-[#C58E47] font-mono font-bold">
               {rooms.length || 3}
             </span>
@@ -863,34 +885,34 @@ export default function AdminPage() {
 
         {/* TAB 1: OVERVIEW */}
         {activeTab === "overview" && (
-          <div className="space-y-6 sm:space-y-8">
-            {/* 4 Metrics Metric Cards */}
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-              <div className="bg-white p-5 rounded-2xl border border-[#EAE5DC] shadow-xs">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-bold text-[#7B887E] uppercase tracking-wider">
+          <div className="space-y-5 sm:space-y-6">
+            {/* 4 Clean KPI Cards */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5">
+              <div className="bg-white p-3.5 sm:p-5 rounded-2xl border border-[#EAE5DC] shadow-xs">
+                <div className="flex items-center justify-between gap-2 mb-1.5">
+                  <span className="text-[10px] sm:text-xs font-bold text-[#7B887E] uppercase tracking-wider leading-tight">
                     Pending Bookings
                   </span>
-                  <div className="w-8 h-8 rounded-lg bg-amber-50 text-[#C58E47] flex items-center justify-center">
-                    <Clock className="w-4 h-4" />
+                  <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-amber-50 text-[#C58E47] flex items-center justify-center shrink-0">
+                    <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                   </div>
                 </div>
-                <div className="text-2xl sm:text-3xl font-serif font-bold text-[#243D2C]">
+                <div className="text-2xl sm:text-3xl font-sans font-bold text-[#243D2C]">
                   {stats?.pendingBookings || 0}
                 </div>
-                <p className="text-[11px] text-[#7B887E] mt-1">Awaiting your confirmation</p>
+                <p className="text-[11px] text-[#7B887E] mt-1">Awaiting confirmation</p>
               </div>
 
-              <div className="bg-white p-5 rounded-2xl border border-[#EAE5DC] shadow-xs">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-bold text-[#7B887E] uppercase tracking-wider">
+              <div className="bg-white p-3.5 sm:p-5 rounded-2xl border border-[#EAE5DC] shadow-xs">
+                <div className="flex items-center justify-between gap-2 mb-1.5">
+                  <span className="text-[10px] sm:text-xs font-bold text-[#7B887E] uppercase tracking-wider leading-tight">
                     Confirmed Stays
                   </span>
-                  <div className="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
-                    <CheckCircle className="w-4 h-4" />
+                  <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-emerald-50 text-emerald-700 flex items-center justify-center shrink-0">
+                    <CheckCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                   </div>
                 </div>
-                <div className="text-2xl sm:text-3xl font-serif font-bold text-[#243D2C]">
+                <div className="text-2xl sm:text-3xl font-sans font-bold text-[#243D2C]">
                   {stats?.confirmedBookings || 0}
                 </div>
                 <p className="text-[11px] text-[#7B887E] mt-1">
@@ -898,74 +920,58 @@ export default function AdminPage() {
                 </p>
               </div>
 
-              <div className="bg-white p-5 rounded-2xl border border-[#EAE5DC] shadow-xs">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-bold text-[#7B887E] uppercase tracking-wider">
+              <div className="bg-white p-3.5 sm:p-5 rounded-2xl border border-[#EAE5DC] shadow-xs">
+                <div className="flex items-center justify-between gap-2 mb-1.5">
+                  <span className="text-[10px] sm:text-xs font-bold text-[#7B887E] uppercase tracking-wider leading-tight">
                     Pending Comments
                   </span>
-                  <div className="w-8 h-8 rounded-lg bg-orange-50 text-orange-600 flex items-center justify-center">
-                    <MessageSquare className="w-4 h-4" />
+                  <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-amber-50 text-amber-700 flex items-center justify-center shrink-0">
+                    <MessageSquare className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                   </div>
                 </div>
-                <div className="text-2xl sm:text-3xl font-serif font-bold text-[#243D2C]">
+                <div className="text-2xl sm:text-3xl font-sans font-bold text-[#243D2C]">
                   {stats?.pendingReviews || 0}
                 </div>
-                <p className="text-[11px] text-[#7B887E] mt-1">User reviews awaiting approval</p>
+                <p className="text-[11px] text-[#7B887E] mt-1">Awaiting review</p>
               </div>
 
-              <div className="bg-white p-5 rounded-2xl border border-[#EAE5DC] shadow-xs">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-bold text-[#7B887E] uppercase tracking-wider">
-                    Live Gallery Photos
+              <div className="bg-white p-3.5 sm:p-5 rounded-2xl border border-[#EAE5DC] shadow-xs">
+                <div className="flex items-center justify-between gap-2 mb-1.5">
+                  <span className="text-[10px] sm:text-xs font-bold text-[#7B887E] uppercase tracking-wider leading-tight">
+                    Gallery Photos
                   </span>
-                  <div className="w-8 h-8 rounded-lg bg-pine-50 text-[#243D2C] flex items-center justify-center">
-                    <ImageIcon className="w-4 h-4" />
+                  <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-[#F2EFE9] text-[#243D2C] flex items-center justify-center shrink-0">
+                    <ImageIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                   </div>
                 </div>
-                <div className="text-2xl sm:text-3xl font-serif font-bold text-[#243D2C]">
+                <div className="text-2xl sm:text-3xl font-sans font-bold text-[#243D2C]">
                   {stats?.totalPhotos || 0}
                 </div>
-                <p className="text-[11px] text-[#7B887E] mt-1">Active photos in carousel &amp; grid</p>
+                <p className="text-[11px] text-[#7B887E] mt-1">Active on website</p>
               </div>
             </div>
 
-            {/* Quick Action Banner */}
-            <div className="bg-[#17271D] rounded-3xl p-6 sm:p-8 text-white relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-xl">
-              <div className="relative z-10 max-w-xl">
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-[#C58E47]/20 border border-[#C58E47]/40 text-[#DFB775] text-[11px] font-bold uppercase tracking-wider mb-3">
-                  <Sparkles className="w-3.5 h-3.5" />
-                  <span>Host Management Center</span>
-                </div>
-                <h3 className="font-serif text-xl sm:text-2xl font-bold mb-2">
-                  Welcome Susantha
-                </h3>
-                <p className="text-xs sm:text-sm text-white/80 leading-relaxed">
-                  Review new booking requests, approve guest comments, and update gallery photos across the website.
-                </p>
+            {bookingActionSuccess && (
+              <div className="p-3.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center gap-2">
+                <CheckCircle className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                <span>{bookingActionSuccess}</span>
               </div>
+            )}
 
-              <div className="flex flex-wrap gap-3 relative z-10">
-                <button
-                  onClick={openManualBookingModal}
-                  className="px-5 py-2.5 rounded-full bg-[#C58E47] hover:bg-[#A97633] text-white text-xs font-bold transition-all shadow-md inline-flex items-center gap-1.5"
-                >
-                  <Plus className="w-4 h-4" />
-                  <span>Add Manual Booking</span>
-                </button>
-                <button
-                  onClick={() => setActiveTab("bookings")}
-                  className="px-5 py-2.5 rounded-full bg-white/15 hover:bg-white/25 text-white text-xs font-bold transition-all border border-white/20"
-                >
-                  Review Bookings
-                </button>
-                <button
-                  onClick={() => setActiveTab("reviews")}
-                  className="px-5 py-2.5 rounded-full bg-white/15 hover:bg-white/25 text-white text-xs font-bold transition-all border border-white/20"
-                >
-                  Approve Comments ({stats?.pendingReviews || 0})
-                </button>
+            {bookingActionError && (
+              <div className="p-3.5 rounded-2xl bg-red-50 border border-red-200 text-red-800 text-xs font-semibold flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-red-600 flex-shrink-0" />
+                <span>{bookingActionError}</span>
               </div>
-            </div>
+            )}
+
+            {/* 3 Separate Room Availability Calendars (Replacing Host Management Section) */}
+            <AdminRoomCalendars
+              bookings={bookings}
+              rooms={rooms}
+              onQuickBook={(rt, checkInYMD) => openManualBookingModal(rt, checkInYMD)}
+              onUpdateStatus={handleUpdateBookingStatus}
+            />
 
             {/* Recent Bookings Snapshot */}
             <div className="bg-white rounded-2xl border border-[#EAE5DC] p-5 sm:p-6 shadow-xs">
@@ -992,9 +998,14 @@ export default function AdminPage() {
                       key={b._id}
                       className="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 rounded-xl bg-[#F8F9F7] border border-[#EAE5DC] gap-3"
                     >
-                      <div>
-                        <div className="flex items-center gap-2">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
                           <span className="font-bold text-sm text-[#243D2C]">{b.customerName}</span>
+                          {b.customerCountry && (
+                            <span className="text-[11px] font-medium px-2 py-0.5 rounded-full bg-white border border-[#EAE5DC] text-[#4F6154]">
+                              {b.customerCountry}
+                            </span>
+                          )}
                           <span
                             className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${b.status === "confirmed"
                               ? "bg-emerald-100 text-emerald-800"
@@ -1008,19 +1019,37 @@ export default function AdminPage() {
                         </div>
                         <div className="text-xs text-[#7B887E] mt-0.5">
                           {b.roomName} • {toVillaYMD(b.checkIn)} to{" "}
-                          {toVillaYMD(b.checkOut)} ({b.nights} nights)
+                          {toVillaYMD(b.checkOut)} ({b.nights}n • {b.guests} guests)
+                        </div>
+                        <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[11px] text-[#4F6154] mt-1">
+                          <span className="font-mono">{b.customerPhone}</span>
+                          {b.idOrPassport && (
+                            <span className="font-mono">ID/PP: {b.idOrPassport}</span>
+                          )}
+                          {b.customerEmail && <span className="truncate">{b.customerEmail}</span>}
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-wrap items-center gap-2 shrink-0">
                         <span className="font-bold text-sm text-[#243D2C]">${b.totalPrice}</span>
+                        {b.status === "pending" && (
+                          <button
+                            type="button"
+                            onClick={() => handleUpdateBookingStatus(b._id, "confirmed")}
+                            className="px-2.5 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold inline-flex items-center gap-1 cursor-pointer"
+                            title="Approve Booking"
+                          >
+                            <CheckCircle className="w-3.5 h-3.5" />
+                            <span>Approve</span>
+                          </button>
+                        )}
                         <a
                           href={`tel:${b.customerPhone.replace(/[^0-9+]/g, "")}`}
                           className="px-3 py-1 rounded-lg bg-[#243D2C] hover:bg-[#17271D] text-white text-xs font-semibold inline-flex items-center gap-1.5 transition-colors"
                           title="Call guest directly"
                         >
                           <Phone className="w-3 h-3 text-[#DFB775]" />
-                          <span>Call Guest</span>
+                          <span>Call</span>
                         </a>
                       </div>
                     </div>
@@ -1036,7 +1065,7 @@ export default function AdminPage() {
           <div className="space-y-6">
             {/* Filter Bar + Manual Booking Button */}
             <div className="bg-white p-4 rounded-2xl border border-[#EAE5DC] flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-xs">
-              <div className="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0">
+              <div className="flex flex-wrap items-center gap-2">
                 {["all", "pending", "confirmed", "cancelled"].map((st) => (
                   <button
                     key={st}
@@ -1055,7 +1084,7 @@ export default function AdminPage() {
                 <div className="relative">
                   <input
                     type="text"
-                    placeholder="Search guest or phone..."
+                    aria-label="Search bookings"
                     value={bookingSearch}
                     onChange={(e) => setBookingSearch(e.target.value)}
                     className="bg-[#F8F9F7] border border-[#EAE5DC] rounded-xl pl-9 pr-4 py-2 text-xs text-[#1F2923] focus:outline-hidden focus:border-[#C58E47] w-full sm:w-56"
@@ -1065,7 +1094,7 @@ export default function AdminPage() {
 
                 <button
                   type="button"
-                  onClick={openManualBookingModal}
+                  onClick={() => openManualBookingModal()}
                   className="px-4 py-2 rounded-xl bg-[#C58E47] hover:bg-[#A97633] text-white text-xs font-bold inline-flex items-center justify-center gap-1.5 shadow-xs transition-all whitespace-nowrap"
                 >
                   <Plus className="w-4 h-4" />
@@ -1159,20 +1188,32 @@ export default function AdminPage() {
                         </div>
                       </div>
 
-                      {/* Contact Info */}
-                      <div className="space-y-1 text-xs mb-4">
+                      {/* Contact & Identity Info */}
+                      <div className="space-y-1.5 text-xs mb-4">
                         <div className="flex items-center gap-1.5 text-[#243D2C]">
-                          <Phone className="w-3.5 h-3.5 text-[#C58E47]" />
+                          <Globe className="w-3.5 h-3.5 text-[#C58E47] shrink-0" />
+                          <span className="font-medium">
+                            {b.customerCountry || "Country not specified"}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1.5 text-[#243D2C]">
+                          <CreditCard className="w-3.5 h-3.5 text-[#C58E47] shrink-0" />
+                          <span className="font-mono font-medium">
+                            {b.idOrPassport ? b.idOrPassport : "ID / Passport not provided"}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1.5 text-[#243D2C]">
+                          <Phone className="w-3.5 h-3.5 text-[#C58E47] shrink-0" />
                           <span className="font-mono font-medium">{b.customerPhone}</span>
                         </div>
                         {b.customerEmail && (
-                          <div className="flex items-center gap-1.5 text-[#7B887E]">
-                            <Mail className="w-3.5 h-3.5 text-[#C58E47]" />
-                            <span>{b.customerEmail}</span>
+                          <div className="flex items-center gap-1.5 text-[#4F6154]">
+                            <Mail className="w-3.5 h-3.5 text-[#C58E47] shrink-0" />
+                            <span className="truncate">{b.customerEmail}</span>
                           </div>
                         )}
                         {b.specialRequests && (
-                          <div className="text-[11px] text-[#7B887E] italic bg-amber-50/60 p-2 rounded-lg border border-amber-200/50 mt-2">
+                          <div className="text-[11px] text-[#4F6154] italic bg-[#FAF9F5] p-2.5 rounded-lg border border-[#EAE5DC] mt-2">
                             &ldquo;{b.specialRequests}&rdquo;
                           </div>
                         )}
@@ -1180,43 +1221,86 @@ export default function AdminPage() {
                     </div>
 
                     {/* Bottom Actions */}
-                    <div className="pt-3 border-t border-[#EAE5DC] flex items-center justify-between gap-2">
-                      <a
-                        href={`tel:${b.customerPhone.replace(/[^0-9+]/g, "")}`}
-                        className="px-3 py-1.5 rounded-xl bg-[#243D2C] hover:bg-[#17271D] text-white text-xs font-semibold inline-flex items-center gap-1.5 shadow-xs transition-colors"
-                        title="Call guest directly"
-                      >
-                        <Phone className="w-3 h-3 text-[#DFB775]" />
-                        <span>Call Guest</span>
-                      </a>
+                    <div className="pt-3 border-t border-[#EAE5DC] space-y-2">
+                      {confirmDeleteBookingId === b._id ? (
+                        <div className="flex items-center justify-between gap-2 p-2 rounded-xl bg-red-50 border border-red-200">
+                          <span className="text-[11px] font-bold text-red-800">
+                            Delete this booking?
+                          </span>
+                          <div className="flex items-center gap-1.5">
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteBooking(b._id)}
+                              className="px-2.5 py-1 rounded-lg bg-red-600 hover:bg-red-700 text-white text-[11px] font-bold cursor-pointer"
+                            >
+                              Confirm Delete
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setConfirmDeleteBookingId(null)}
+                              className="px-2.5 py-1 rounded-lg bg-white text-[#4F6154] border border-[#EAE5DC] text-[11px] font-semibold cursor-pointer"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <div className="flex items-center gap-1.5">
+                            <a
+                              href={`tel:${b.customerPhone.replace(/[^0-9+]/g, "")}`}
+                              className="px-2.5 py-1.5 rounded-xl bg-[#243D2C] hover:bg-[#17271D] text-white text-xs font-semibold inline-flex items-center gap-1 shadow-xs transition-colors"
+                              title="Call guest directly"
+                            >
+                              <Phone className="w-3 h-3 text-[#DFB775]" />
+                              <span>Call</span>
+                            </a>
+                            <a
+                              href={`https://wa.me/${b.customerPhone.replace(/[^0-9]/g, "")}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="px-2.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold inline-flex items-center gap-1 shadow-xs transition-colors"
+                              title="Message guest on WhatsApp"
+                            >
+                              <MessageCircle className="w-3 h-3" />
+                              <span>WhatsApp</span>
+                            </a>
+                          </div>
 
-                      <div className="flex items-center gap-1.5">
-                        {b.status !== "confirmed" && (
-                          <button
-                            onClick={() => handleUpdateBookingStatus(b._id, "confirmed")}
-                            className="p-1.5 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-300"
-                            title="Confirm Booking"
-                          >
-                            <CheckCircle className="w-4 h-4" />
-                          </button>
-                        )}
-                        {b.status !== "cancelled" && (
-                          <button
-                            onClick={() => handleUpdateBookingStatus(b._id, "cancelled")}
-                            className="p-1.5 rounded-lg bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-300"
-                            title="Decline/Cancel Booking"
-                          >
-                            <XCircle className="w-4 h-4" />
-                          </button>
-                        )}
-                        <button
-                          onClick={() => handleDeleteBooking(b._id)}
-                          className="p-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 border border-red-200"
-                          title="Delete Booking Record"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
+                          <div className="flex items-center gap-1.5">
+                            {b.status !== "confirmed" && (
+                              <button
+                                type="button"
+                                onClick={() => handleUpdateBookingStatus(b._id, "confirmed")}
+                                className="px-2.5 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-300 text-xs font-bold inline-flex items-center gap-1 cursor-pointer"
+                                title="Approve Booking"
+                              >
+                                <CheckCircle className="w-3.5 h-3.5" />
+                                <span>Approve</span>
+                              </button>
+                            )}
+                            {b.status !== "cancelled" && (
+                              <button
+                                type="button"
+                                onClick={() => handleUpdateBookingStatus(b._id, "cancelled")}
+                                className="p-1.5 rounded-lg bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-300 cursor-pointer"
+                                title="Decline/Cancel Booking"
+                              >
+                                <XCircle className="w-4 h-4" />
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => setConfirmDeleteBookingId(b._id)}
+                              className="p-1.5 rounded-lg bg-red-50 text-red-600 hover:bg-red-100 border border-red-200 cursor-pointer"
+                              title="Delete Booking Record"
+                              aria-label="Delete Booking Record"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -1229,8 +1313,8 @@ export default function AdminPage() {
         {activeTab === "reviews" && (
           <div className="space-y-6">
             {/* Filter Pills */}
-            <div className="flex items-center justify-between bg-white p-4 rounded-2xl border border-[#EAE5DC] shadow-xs">
-              <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center justify-between gap-2 bg-white p-4 rounded-2xl border border-[#EAE5DC] shadow-xs">
+              <div className="flex flex-wrap items-center gap-2">
                 <button
                   onClick={() => setReviewFilter("pending")}
                   className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${reviewFilter === "pending"
@@ -1350,7 +1434,7 @@ export default function AdminPage() {
         {/* TAB 4: GALLERY CUSTOMIZER */}
         {activeTab === "gallery" && (
           <div className="space-y-6">
-            <div className="flex items-center justify-between bg-white p-4 rounded-2xl border border-[#EAE5DC] shadow-xs">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-[#EAE5DC] shadow-xs">
               <div>
                 <h4 className="font-serif text-lg font-bold text-[#243D2C]">Gallery Photos</h4>
                 <p className="text-xs text-[#7B887E]">
@@ -1506,7 +1590,6 @@ export default function AdminPage() {
                       </label>
                       <input
                         type="text"
-                        placeholder="e.g. Pine Valley Sunrise"
                         value={newPhoto.title}
                         onChange={(e) => setNewPhoto({ ...newPhoto, title: e.target.value })}
                         className="w-full bg-[#F8F9F7] border border-[#EAE5DC] rounded-xl px-3.5 py-2.5 text-xs text-[#1F2923]"
@@ -1520,7 +1603,6 @@ export default function AdminPage() {
                       </label>
                       <input
                         type="text"
-                        placeholder="e.g. Beautiful mountain mist from the private veranda"
                         value={newPhoto.subtitle}
                         onChange={(e) => setNewPhoto({ ...newPhoto, subtitle: e.target.value })}
                         className="w-full bg-[#F8F9F7] border border-[#EAE5DC] rounded-xl px-3.5 py-2.5 text-xs text-[#1F2923]"
@@ -1904,7 +1986,6 @@ export default function AdminPage() {
                           onChange={(e) =>
                             setEditingRoom({ ...editingRoom, bedSpec: e.target.value })
                           }
-                          placeholder="e.g. 1 Extra-Large Double Bed"
                           className="w-full bg-[#F8F9F7] border border-[#EAE5DC] rounded-xl px-3.5 py-2 text-xs text-[#1F2923]"
                         />
                       </div>
@@ -1919,7 +2000,6 @@ export default function AdminPage() {
                           onChange={(e) =>
                             setEditingRoom({ ...editingRoom, bathroomSpec: e.target.value })
                           }
-                          placeholder="e.g. Private Hot-Water Bathroom"
                           className="w-full bg-[#F8F9F7] border border-[#EAE5DC] rounded-xl px-3.5 py-2 text-xs text-[#1F2923]"
                         />
                       </div>
@@ -1936,7 +2016,6 @@ export default function AdminPage() {
                           setEditingRoom({ ...editingRoom, featuresText: e.target.value })
                         }
                         className="w-full bg-[#F8F9F7] border border-[#EAE5DC] rounded-xl p-3 text-xs text-[#1F2923] focus:border-[#C58E47] focus:outline-hidden font-mono"
-                        placeholder="One inclusion per line"
                       />
                     </div>
 
@@ -2013,11 +2092,10 @@ export default function AdminPage() {
                           key={rt}
                           type="button"
                           onClick={() => setManualBooking((prev) => ({ ...prev, roomType: rt }))}
-                          className={`p-3 rounded-2xl border-2 text-left transition-all ${
-                            active
+                          className={`p-3 rounded-2xl border-2 text-left transition-all ${active
                               ? "border-[#243D2C] bg-[#FAF9F5] shadow-xs"
                               : "border-[#EAE5DC] bg-white hover:border-[#DFB775]"
-                          }`}
+                            }`}
                         >
                           <div className="flex items-center justify-between mb-1">
                             <span className="text-[10px] font-bold uppercase tracking-wider text-[#C58E47]">
@@ -2134,7 +2212,6 @@ export default function AdminPage() {
                     <input
                       type="text"
                       required
-                      placeholder="e.g. Nimal Perera"
                       value={manualBooking.customerName}
                       onChange={(e) =>
                         setManualBooking((prev) => ({ ...prev, customerName: e.target.value }))
@@ -2144,12 +2221,45 @@ export default function AdminPage() {
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-[#1F2923] mb-1">
+                      Country
+                    </label>
+                    <select
+                      value={manualBooking.customerCountry}
+                      onChange={(e) =>
+                        setManualBooking((prev) => ({ ...prev, customerCountry: e.target.value }))
+                      }
+                      className="w-full bg-[#F8F9F7] border border-[#EAE5DC] rounded-xl px-3.5 py-2 text-xs text-[#1F2923] focus:border-[#C58E47] focus:outline-hidden"
+                    >
+                      {COUNTRIES.map((c) => (
+                        <option key={c.code} value={c.name}>
+                          {c.name} ({c.dialCode})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-[#1F2923] mb-1">
+                      NIC / Passport Number (Optional)
+                    </label>
+                    <input
+                      type="text"
+                      value={manualBooking.idOrPassport}
+                      onChange={(e) =>
+                        setManualBooking((prev) => ({ ...prev, idOrPassport: e.target.value }))
+                      }
+                      className="w-full bg-[#F8F9F7] border border-[#EAE5DC] rounded-xl px-3.5 py-2 text-xs font-mono text-[#1F2923] focus:border-[#C58E47] focus:outline-hidden"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-[#1F2923] mb-1">
                       Contact Phone / WhatsApp *
                     </label>
                     <input
                       type="tel"
                       required
-                      placeholder="e.g. +94 77 123 4567"
                       value={manualBooking.customerPhone}
                       onChange={(e) =>
                         setManualBooking((prev) => ({ ...prev, customerPhone: e.target.value }))
@@ -2166,7 +2276,6 @@ export default function AdminPage() {
                     </label>
                     <input
                       type="email"
-                      placeholder="guest@example.com"
                       value={manualBooking.customerEmail}
                       onChange={(e) =>
                         setManualBooking((prev) => ({ ...prev, customerEmail: e.target.value }))
@@ -2194,7 +2303,7 @@ export default function AdminPage() {
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-[#1F2923] mb-1">
-                      Booking Status
+                      Approval Status
                     </label>
                     <select
                       value={manualBooking.status}
@@ -2206,7 +2315,7 @@ export default function AdminPage() {
                       }
                       className="w-full bg-[#F8F9F7] border border-[#EAE5DC] rounded-xl px-3.5 py-2 text-xs text-[#1F2923] focus:border-[#C58E47] focus:outline-hidden font-semibold"
                     >
-                      <option value="confirmed">Confirmed (Blocks Dates)</option>
+                      <option value="confirmed">Confirmed (Direct Admin Approval)</option>
                       <option value="pending">Pending (Holds Dates)</option>
                     </select>
                   </div>
@@ -2282,7 +2391,6 @@ export default function AdminPage() {
                   </label>
                   <textarea
                     rows={2}
-                    placeholder="e.g. Early morning train arrival, Horton Plains jeep needed..."
                     value={manualBooking.specialRequests}
                     onChange={(e) =>
                       setManualBooking((prev) => ({ ...prev, specialRequests: e.target.value }))

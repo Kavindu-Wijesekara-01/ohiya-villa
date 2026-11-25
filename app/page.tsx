@@ -14,6 +14,7 @@ import FaqSection from "@/components/FaqSection";
 import ContactAndFooter from "@/components/ContactAndFooter";
 import FloatingWhatsApp from "@/components/FloatingWhatsApp";
 import PhotoLightbox from "@/components/PhotoLightbox";
+import ScrollReveal from "@/components/ScrollReveal";
 
 const ALL_PHOTOS = [
   { url: "/photos/outside-cool-view.jpeg", caption: "Misty Mountain Panorama" },
@@ -75,31 +76,49 @@ export default function Home() {
       <Hero />
 
       {/* Section 3: Quick Property Highlights Strip */}
-      <PropertyHighlights />
+      <ScrollReveal>
+        <PropertyHighlights />
+      </ScrollReveal>
 
       {/* Section 4: Rooms & Direct Booking Rates */}
-      <RoomsSection onSelectPhoto={handleOpenPhoto} />
+      <ScrollReveal>
+        <RoomsSection onSelectPhoto={handleOpenPhoto} />
+      </ScrollReveal>
 
       {/* New Dedicated Highland Visual Gallery */}
-      <GallerySection onOpenPhoto={handleOpenPhoto} />
+      <ScrollReveal>
+        <GallerySection onOpenPhoto={handleOpenPhoto} />
+      </ScrollReveal>
 
       {/* Section 5: Horton Plains Transport & Local Mobility Banner */}
-      <TransportBanner />
+      <ScrollReveal>
+        <TransportBanner />
+      </ScrollReveal>
 
       {/* Section 6: Facilities & Amenities */}
-      <FacilitiesSection />
+      <ScrollReveal>
+        <FacilitiesSection />
+      </ScrollReveal>
 
       {/* Section 7: Prime Location & Nearby Attractions */}
-      <LocationSection />
+      <ScrollReveal>
+        <LocationSection />
+      </ScrollReveal>
 
       {/* Section 8: Meet Your Host & Guest Stories */}
-      <HostAndReviews />
+      <ScrollReveal>
+        <HostAndReviews />
+      </ScrollReveal>
 
       {/* Section 9: Frequently Asked Questions */}
-      <FaqSection />
+      <ScrollReveal>
+        <FaqSection />
+      </ScrollReveal>
 
       {/* Section 10: Contact Section & Footer */}
-      <ContactAndFooter />
+      <ScrollReveal>
+        <ContactAndFooter />
+      </ScrollReveal>
 
       {/* Floating Action Button: WhatsApp */}
       <FloatingWhatsApp />

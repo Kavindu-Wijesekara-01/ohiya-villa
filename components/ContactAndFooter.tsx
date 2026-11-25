@@ -298,13 +298,14 @@ export default function ContactAndFooter() {
         {/* ───────── Brand + navigation ───────── */}
         <div className="border-t border-[#233229] py-10 sm:py-12 flex flex-col lg:flex-row lg:items-center justify-between gap-8">
           <div className="flex items-center gap-4">
-            <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full border border-[#C59B5F]/40 bg-[#17271D]">
+            <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-full border-2 border-[#DFB775]/60 bg-white">
               <Image
                 src="/logo.jpeg"
                 alt="Dawn Breezy Bungalow logo"
                 fill
-                sizes="48px"
-                className="object-cover"
+                sizes="96px"
+                quality={95}
+                className="object-cover scale-[1.24]"
               />
             </div>
             <div>
