@@ -79,7 +79,7 @@ export default function ContactAndFooter() {
                     href={p.href}
                     {...(p.external
                       ? { target: "_blank", rel: "noopener noreferrer" }
-                    : {})}
+                      : {})}
                     className="flex items-center gap-4 py-4 group"
                   >
                     <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#17271D] text-[#C59B5F] group-hover:bg-[#C59B5F] group-hover:text-[#0E1712] transition-colors">
@@ -136,33 +136,32 @@ export default function ContactAndFooter() {
 
           {/* Right: Boutique Highland Villa Showcase Card */}
           <div className="lg:col-span-7 order-1 lg:order-2">
-            <div className="bg-gradient-to-br from-[#14231A] to-[#0D1812] rounded-3xl p-6 sm:p-8 lg:p-9 border border-[#233F2C] shadow-2xl relative overflow-hidden flex flex-col justify-between h-full">
-              {/* Ambient Glows */}
-              <div className="absolute top-0 right-0 w-72 h-72 bg-[#C58E47]/10 rounded-full blur-3xl pointer-events-none" />
-              <div className="absolute bottom-0 left-0 w-64 h-64 bg-[#233F2C]/30 rounded-full blur-3xl pointer-events-none" />
+            <div className="bg-gradient-to-br from-[#14241A] to-[#0D1812] rounded-[28px] p-6 sm:p-8 lg:p-9 border border-[#25402E] shadow-2xl relative overflow-hidden flex flex-col justify-between h-full">
+              {/* Zero-lag Radial Ambient Glows */}
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_90%_10%,rgba(197,142,71,0.12)_0%,transparent_55%),radial-gradient(circle_at_10%_90%,rgba(35,63,44,0.35)_0%,transparent_55%)] pointer-events-none" />
 
               <div className="relative z-10">
                 {/* Visual Imagery Preview */}
-                <div className="relative w-full h-48 sm:h-56 rounded-2xl overflow-hidden border border-[#264230] mb-6 group">
+                <div className="relative w-full h-48 sm:h-56 rounded-2xl overflow-hidden border border-[#284533] mb-6 group">
                   <Image
                     src="/photos/outside-cool-view.jpeg"
                     alt="Panoramic view from Dawn Breezy Bungalow in Ohiya"
                     fill
                     sizes="(max-width: 768px) 100vw, 600px"
-                    className="object-cover transition-transform duration-700 group-hover:scale-105"
+                    className="object-cover transition-transform duration-700 group-hover:scale-105 transform-gpu"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#0E1712] via-[#0E1712]/40 to-transparent" />
-                  
-                  <div className="absolute top-3 left-3 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/50 backdrop-blur-md border border-[#C58E47]/40 text-[11px] font-semibold text-[#DFB775]">
+                  <div className="absolute inset-0 bg-gradient-to-t from-[#0E1712] via-[#0E1712]/35 to-transparent" />
+
+                  <div className="absolute top-3 left-3 inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black/65 border border-[#C58E47]/45 text-[11px] font-semibold text-[#DFB775]">
                     <Sparkles className="w-3 h-3 text-[#C58E47]" />
                     <span>1,774m Highland Altitude</span>
                   </div>
 
                   <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between text-xs text-[#F2ECE1]">
-                    <div className="font-serif italic text-sm text-[#F2ECE1]/90 drop-shadow-sm">
+                    <div className="font-serif italic text-sm text-[#F2ECE1]/95 drop-shadow-sm">
                       Misty pine valley mornings
                     </div>
-                    <span className="text-[11px] text-[#A6B5AB] px-2.5 py-1 rounded-full bg-black/40 backdrop-blur-xs">
+                    <span className="text-[11px] text-[#B7C4BC] px-2.5 py-1 rounded-full bg-black/55 border border-white/10">
                       Ohiya, Sri Lanka
                     </span>
                   </div>
@@ -337,7 +336,7 @@ export default function ContactAndFooter() {
         {/* ───────── Legal ───────── */}
         <div className="border-t border-[#233229] py-6 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-[#6B7A70]">
           <p>© 2026 Dawn Breezy Bungalow, Ohiya. All rights reserved.</p>
-          <p>Also listed on Booking.com as Ohiya View Resort.</p>
+
         </div>
       </div>
     </footer>

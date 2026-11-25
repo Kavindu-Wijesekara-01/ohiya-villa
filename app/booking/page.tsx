@@ -755,22 +755,22 @@ function BookingContent() {
                   <div
                     key={opt.id}
                     onClick={() => handleRoomSelect(opt)}
-                    className={`scroll-reveal-card cursor-pointer rounded-3xl p-4 sm:p-5 border-2 transition-all flex flex-col justify-between group ${
+                    className={`editorial-card cursor-pointer rounded-[26px] p-4 sm:p-5 border-2 flex flex-col justify-between group ${
                       isSelected
-                        ? "bg-[#FAF9F5] border-[#243D2C] shadow-lg ring-2 ring-[#243D2C]/10 scale-101"
-                        : "bg-white border-[#EAE5DC] hover:border-[#DFB775] hover:shadow-md"
+                        ? "bg-gradient-to-b from-[#FAF7F0] to-white border-[#243D2C] shadow-xl ring-4 ring-[#C58E47]/15"
+                        : "bg-white border-[#E6DFD3] hover:border-[#DFB775]"
                     }`}
                   >
                     <div>
                       {/* Photo Thumbnail */}
-                      <div className="relative h-40 w-full rounded-2xl overflow-hidden mb-3.5 bg-gray-100">
+                      <div className="relative h-40 w-full rounded-2xl overflow-hidden mb-3.5 bg-stone-200 ring-1 ring-black/5">
                         <Image
                           src={opt.image}
                           alt={opt.name}
                           fill
-                          className="object-cover group-hover:scale-105 transition-transform duration-300"
+                          className="object-cover group-hover:scale-105 transition-transform duration-500 transform-gpu"
                         />
-                        <div className="absolute top-2.5 right-2.5 px-2.5 py-1 rounded-full bg-black/70 backdrop-blur-xs text-white text-[11px] font-bold">
+                        <div className="absolute top-2.5 right-2.5 px-2.5 py-1 rounded-full bg-black/75 text-white text-[11px] font-bold border border-white/15">
                           {opt.priceLabel}
                           {opt.pricePerNight && <span className="text-[9px] font-normal"> / night</span>}
                         </div>
@@ -986,7 +986,7 @@ function BookingContent() {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="w-full py-4 px-6 rounded-2xl bg-[#243D2C] hover:bg-[#17271D] text-white font-bold text-sm sm:text-base transition-all shadow-lg shadow-[#243D2C]/20 flex items-center justify-center gap-2.5 hover:scale-101 active:scale-99"
+                  className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-[#243D2C] to-[#1A2E21] hover:from-[#1A2E21] hover:to-[#112016] text-white font-bold text-sm sm:text-base transition-all shadow-lg shadow-[#243D2C]/25 flex items-center justify-center gap-2.5 hover:scale-101 active:scale-99 cursor-pointer"
                 >
                   {isSubmitting ? (
                     <span>Registering Your Reservation...</span>
@@ -1005,8 +1005,8 @@ function BookingContent() {
         </div>
 
         {/* Right Column: Sticky Stay Summary Breakdown (4 Cols) */}
-        <div className="scroll-reveal lg:col-span-4 sticky top-24 space-y-6">
-          <div className="bg-white rounded-3xl p-6 border border-[#EAE5DC] shadow-lg">
+        <div className="lg:col-span-4 sticky top-24 space-y-6">
+          <div className="editorial-card bg-white rounded-[28px] p-6 border border-[#E6DFD3]">
             <span className="text-[10px] font-bold uppercase tracking-wider text-[#C58E47] block mb-1">
               Reservation Summary
             </span>

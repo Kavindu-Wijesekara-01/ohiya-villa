@@ -27,11 +27,11 @@ export default function FacilitiesSection() {
   ];
 
   return (
-    <section id="facilities" className="py-10 sm:py-16 lg:py-20 bg-[#F8F9F7] border-t border-[#E2E6E3]">
+    <section id="facilities" className="py-12 sm:py-16 lg:py-22 bg-[#F7F5F0] border-t border-[#E6DFD3]">
       <div className="max-w-7xl mx-auto px-3.5 sm:px-6 lg:px-8">
         {/* Section Header */}
-        <div className="scroll-reveal text-center max-w-3xl mx-auto mb-8 sm:mb-12">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#C58E47]/15 border border-[#C58E47]/30 text-xs sm:text-sm font-bold uppercase tracking-widest text-[#243D2C] mb-2.5 shadow-2xs">
+        <div className="text-center max-w-3xl mx-auto mb-8 sm:mb-12">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#C58E47]/15 border border-[#C58E47]/35 text-xs sm:text-sm font-bold uppercase tracking-widest text-[#243D2C] mb-2.5 shadow-2xs">
             <Sparkles className="w-3.5 h-3.5 text-[#C58E47]" />
             <span>Designed for Serene Mountain Living</span>
           </div>
@@ -45,24 +45,24 @@ export default function FacilitiesSection() {
           </p>
         </div>
 
-        {/* 1. TOP FEATURED CARD: Fresh Home-Cooked Ceylon Breakfast & Lunch (Placed at the very top as requested) */}
-        <div className="scroll-reveal mb-8 sm:mb-10 group bg-white rounded-3xl border border-[#E2E6E3] hover:border-[#C58E47] overflow-hidden transition-all duration-300 hover:shadow-2xl">
+        {/* 1. TOP FEATURED CARD: Fresh Home-Cooked Ceylon Breakfast & Lunch */}
+        <div className="editorial-card mb-8 sm:mb-10 group bg-white rounded-[28px] border border-[#E5DFD3] hover:border-[#C58E47] overflow-hidden">
           <div className="grid grid-cols-1 lg:grid-cols-12 items-stretch">
             {/* Visual Food Showcase Image (7 cols on Desktop) */}
-            <div className="scroll-reveal-img lg:col-span-7 relative h-72 sm:h-80 lg:h-[420px] w-full overflow-hidden bg-gray-100">
+            <div className="lg:col-span-7 relative h-72 sm:h-80 lg:h-[420px] w-full overflow-hidden bg-gray-100">
               <Image
                 src="/photos/sri-lankan-food.jpg"
                 alt="Delicious Sri Lankan Breakfast and Lunch Feast overlooking Misty Ohiya Tea Hills"
                 fill
                 sizes="(max-width: 1024px) 100vw, 60vw"
                 priority
-                className="object-cover object-center group-hover:scale-105 transition-transform duration-700 ease-out"
+                className="object-cover object-center group-hover:scale-105 transition-transform duration-700 ease-out transform-gpu"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-transparent" />
 
               {/* Top Floating Badge */}
               <div className="absolute top-4 left-4 flex items-center gap-2">
-                <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold bg-[#243D2C]/90 text-white backdrop-blur-md border border-white/20 shadow-md">
+                <span className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold bg-[#0D1912]/85 text-white border border-white/20 shadow-md">
                   <UtensilsCrossed className="w-3.5 h-3.5 text-[#D4A362]" />
                   <span>Culinary Highland Experience</span>
                 </span>
@@ -151,20 +151,20 @@ export default function FacilitiesSection() {
         {/* 2. Asymmetric Modern Bento Grid (Panoramic Veranda, Hot Water, Kitchen, Grounds) */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 sm:gap-6 lg:gap-8 mb-8 sm:mb-12">
           {/* Card 1: Large Featured Bento (7 Columns) - Mountain Veranda */}
-          <div className="scroll-reveal delay-100 lg:col-span-7 group flex flex-col bg-[#FAF9F5] rounded-3xl border border-[#EAE5DC] hover:border-[#DFB775]/70 overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
-            <div className="scroll-reveal-img relative h-64 sm:h-72 lg:h-80 w-full overflow-hidden bg-gray-200">
+          <div className="editorial-card lg:col-span-7 group flex flex-col bg-white rounded-[26px] border border-[#E5DFD3] hover:border-[#DFB775] overflow-hidden">
+            <div className="relative h-64 sm:h-72 lg:h-80 w-full overflow-hidden bg-stone-200">
               <Image
                 src="/photos/outside-cool-view.jpeg"
                 alt="Dawn Breezy Bungalow Panoramic Mountain Veranda"
                 fill
                 sizes="(max-width: 1024px) 100vw, 60vw"
-                className="object-cover group-hover:scale-108 transition-transform duration-700"
+                className="object-cover group-hover:scale-106 transition-transform duration-700 transform-gpu"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
 
               {/* Floating Badge */}
               <div className="absolute top-4 left-4">
-                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-[#243D2C]/90 text-white backdrop-blur-md border border-white/15 shadow-xs">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-[#0D1912]/85 text-white border border-white/15 shadow-xs">
                   <Trees className="w-3.5 h-3.5 text-[#C58E47]" />
                   <span>1,775m Alpine Panorama</span>
                 </span>
@@ -225,20 +225,20 @@ export default function FacilitiesSection() {
           </div>
 
           {/* Card 2: Compact Bento (5 Columns) - Modern Hot Water En-Suite */}
-          <div className="scroll-reveal delay-200 lg:col-span-5 group flex flex-col bg-[#FAF9F5] rounded-3xl border border-[#EAE5DC] hover:border-[#DFB775]/70 overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
-            <div className="scroll-reveal-img relative h-64 sm:h-72 lg:h-80 w-full overflow-hidden bg-gray-200">
+          <div className="editorial-card lg:col-span-5 group flex flex-col bg-white rounded-[26px] border border-[#E5DFD3] hover:border-[#DFB775] overflow-hidden">
+            <div className="relative h-64 sm:h-72 lg:h-80 w-full overflow-hidden bg-stone-200">
               <Image
                 src="/photos/highland-hot-water.jpg"
                 alt="Dawn Breezy Bungalow En-Suite Hot Water Shower with Steaming Rainhead"
                 fill
                 sizes="(max-width: 1024px) 100vw, 40vw"
-                className="object-cover group-hover:scale-108 transition-transform duration-700"
+                className="object-cover group-hover:scale-106 transition-transform duration-700 transform-gpu"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
 
               {/* Floating Badge */}
               <div className="absolute top-4 left-4">
-                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-[#243D2C]/90 text-white backdrop-blur-md border border-white/15 shadow-xs">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-[#0D1912]/85 text-white border border-white/15 shadow-xs">
                   <Bath className="w-3.5 h-3.5 text-[#C58E47]" />
                   <span>Private En-Suite</span>
                 </span>
@@ -299,20 +299,20 @@ export default function FacilitiesSection() {
           </div>
 
           {/* Card 3: Compact Bento (5 Columns) - Kitchen & Home Dining */}
-          <div className="scroll-reveal delay-150 lg:col-span-5 group flex flex-col bg-[#FAF9F5] rounded-3xl border border-[#EAE5DC] hover:border-[#DFB775]/70 overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
-            <div className="scroll-reveal-img relative h-64 sm:h-72 lg:h-80 w-full overflow-hidden bg-gray-200">
+          <div className="editorial-card lg:col-span-5 group flex flex-col bg-white rounded-[26px] border border-[#E5DFD3] hover:border-[#DFB775] overflow-hidden">
+            <div className="relative h-64 sm:h-72 lg:h-80 w-full overflow-hidden bg-stone-200">
               <Image
                 src="/photos/inside-view.jpeg"
                 alt="Dawn Breezy Bungalow Dining Area and Kitchen"
                 fill
                 sizes="(max-width: 1024px) 100vw, 40vw"
-                className="object-cover group-hover:scale-108 transition-transform duration-700"
+                className="object-cover group-hover:scale-106 transition-transform duration-700 transform-gpu"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
 
               {/* Floating Badge */}
               <div className="absolute top-4 left-4">
-                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-[#243D2C]/90 text-white backdrop-blur-md border border-white/15 shadow-xs">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-[#0D1912]/85 text-white border border-white/15 shadow-xs">
                   <UtensilsCrossed className="w-3.5 h-3.5 text-[#C58E47]" />
                   <span>Self-Catering &amp; Dining</span>
                 </span>
@@ -373,20 +373,20 @@ export default function FacilitiesSection() {
           </div>
 
           {/* Card 4: Large Featured Bento (7 Columns) - Hospitality & Grounds */}
-          <div className="scroll-reveal delay-250 lg:col-span-7 group flex flex-col bg-[#FAF9F5] rounded-3xl border border-[#EAE5DC] hover:border-[#DFB775]/70 overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
-            <div className="scroll-reveal-img relative h-64 sm:h-72 lg:h-80 w-full overflow-hidden bg-gray-200">
+          <div className="editorial-card lg:col-span-7 group flex flex-col bg-white rounded-[26px] border border-[#E5DFD3] hover:border-[#DFB775] overflow-hidden">
+            <div className="relative h-64 sm:h-72 lg:h-80 w-full overflow-hidden bg-stone-200">
               <Image
                 src="/photos/outside-view-3.jpeg"
                 alt="Dawn Breezy Bungalow Private Grounds and Secure Parking"
                 fill
                 sizes="(max-width: 1024px) 100vw, 60vw"
-                className="object-cover group-hover:scale-108 transition-transform duration-700"
+                className="object-cover group-hover:scale-106 transition-transform duration-700 transform-gpu"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent" />
 
               {/* Floating Badge */}
               <div className="absolute top-4 left-4">
-                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-[#243D2C]/90 text-white backdrop-blur-md border border-white/15 shadow-xs">
+                <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-[#0D1912]/85 text-white border border-white/15 shadow-xs">
                   <ShieldCheck className="w-3.5 h-3.5 text-[#C58E47]" />
                   <span>Hassle-Free Hospitality</span>
                 </span>

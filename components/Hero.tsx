@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
@@ -10,7 +10,8 @@ import {
   Train,
   Mountain,
   Compass,
-  Sparkles
+  Sparkles,
+  ChevronDown
 } from "lucide-react";
 
 const HERO_BACKGROUNDS = [
@@ -68,7 +69,7 @@ const TICKER_ITEMS = [
 export default function Hero() {
   const [bgIndex, setBgIndex] = useState(0);
   const [tickerIndex, setTickerIndex] = useState(0);
-  const [scrollY, setScrollY] = useState(0);
+  const heroContentRef = useRef<HTMLDivElement>(null);
 
   // Background Image Crossfade Interval (every 5 seconds)
   useEffect(() => {
@@ -86,34 +87,44 @@ export default function Hero() {
     return () => clearInterval(tickerTimer);
   }, []);
 
-  // Subtle Smooth Scroll Parallax
+  // Zero-lag GPU Parallax via direct DOM ref (zero React re-renders on scroll)
   useEffect(() => {
-    let ticking = false;
-    const handleScroll = () => {
-      if (!ticking) {
-        window.requestAnimationFrame(() => {
-          setScrollY(window.scrollY);
-          ticking = false;
-        });
-        ticking = true;
+    let rafId = 0;
+    const updateParallax = () => {
+      const el = heroContentRef.current;
+      if (!el) return;
+      const y = window.scrollY;
+      if (y <= 700) {
+        const shift = Math.round(Math.min(y * 0.16, 100));
+        const opacity = Math.max(0, 1 - y / 620);
+        el.style.transform = y > 0 ? `translate3d(0, ${shift}px, 0)` : "translate3d(0, 0, 0)";
+        el.style.opacity = String(opacity);
       }
     };
+    const handleScroll = () => {
+      cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(updateParallax);
+    };
     window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
+    return () => {
+      window.removeEventListener("scroll", handleScroll);
+      cancelAnimationFrame(rafId);
+    };
   }, []);
 
   const currentTicker = TICKER_ITEMS[tickerIndex];
   const TickerIcon = currentTicker.icon;
 
   return (
-    <section className="relative w-full min-h-screen min-h-[100dvh] flex items-center justify-center overflow-hidden bg-[#17271D]">
+    <section className="relative w-full min-h-screen min-h-[100dvh] flex items-center justify-center overflow-hidden bg-[#111E16]">
       {/* Continuously Animated Crossfading Background Images */}
       <div className="absolute inset-0 z-0">
         {HERO_BACKGROUNDS.map((bg, idx) => (
           <div
             key={bg.url}
-            className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${idx === bgIndex ? "opacity-100" : "opacity-0 pointer-events-none"
-              }`}
+            className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${
+              idx === bgIndex ? "opacity-100" : "opacity-0 pointer-events-none"
+            }`}
           >
             <Image
               src={bg.url}
@@ -121,24 +132,22 @@ export default function Hero() {
               fill
               priority={idx === 0}
               sizes="100vw"
-              className={`object-cover object-center transition-transform duration-[6000ms] ease-out ${idx === bgIndex ? "scale-108" : "scale-100"
-                }`}
+              className={`object-cover object-center transition-transform duration-[6000ms] ease-out transform-gpu ${
+                idx === bgIndex ? "scale-105" : "scale-100"
+              }`}
             />
           </div>
         ))}
 
-        {/* Sophisticated Multi-Layer Luxury Dark Gradients */}
-        <div className="absolute inset-0 bg-gradient-to-t from-[#17271D] via-[#17271D]/65 to-[#17271D]/50 mix-blend-multiply" />
-        <div className="absolute inset-0 bg-radial from-transparent via-[#17271D]/40 to-[#17271D]/85" />
+        {/* Crisp Editorial Gradient Vignettes (Zero heavy blur filters) */}
+        <div className="absolute inset-0 bg-gradient-to-t from-[#0D1912] via-[#132219]/55 to-black/45" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_20%,rgba(13,25,18,0.68)_100%)]" />
       </div>
 
-      {/* Hero Content - Perfectly Balanced Vertical Layout with Scroll Animation */}
+      {/* Hero Content - Perfectly Balanced Vertical Layout */}
       <div
-        style={{
-          transform: scrollY > 0 ? `translate3d(0, ${Math.round(Math.min(scrollY * 0.2, 130))}px, 0)` : "none",
-          opacity: scrollY > 0 ? Math.max(0, 1 - scrollY / 650) : 1,
-        }}
-        className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 sm:pt-28 md:pt-32 pb-24 sm:pb-32 lg:pb-36 text-center flex flex-col items-center justify-center min-h-screen min-h-[100dvh] w-full"
+        ref={heroContentRef}
+        className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 pt-24 sm:pt-28 md:pt-32 pb-24 sm:pb-32 lg:pb-36 text-center flex flex-col items-center justify-center min-h-screen min-h-[100dvh] w-full will-change-transform"
       >
         {/* Unified Content Block: Eyebrow, Headline, Subheadline & Action Buttons */}
         <div className="flex flex-col items-center text-center w-full max-w-4xl my-auto">
@@ -148,15 +157,15 @@ export default function Hero() {
             <div className="animate-in fade-in duration-600 slide-in-from-bottom-2 mb-4 sm:mb-5 min-h-[36px] flex items-center justify-center">
               <div
                 key={tickerIndex}
-                className="animate-in fade-in slide-in-from-bottom-1 duration-400 inline-flex items-center gap-2 px-3 sm:px-3.5 py-1 sm:py-1.5 rounded-full bg-black/45 hover:bg-black/60 border border-[#C58E47]/45 backdrop-blur-xl shadow-md transition-all whitespace-nowrap"
+                className="animate-in fade-in slide-in-from-bottom-1 duration-400 inline-flex items-center gap-2 px-3.5 sm:px-4 py-1.5 rounded-full bg-black/55 hover:bg-black/70 border border-[#C58E47]/50 shadow-lg transition-colors whitespace-nowrap"
               >
-                <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-[#C58E47] text-white flex items-center justify-center flex-shrink-0 shadow-2xs">
+                <div className="w-4 h-4 sm:w-5 sm:h-5 rounded-full bg-[#C58E47] text-white flex items-center justify-center flex-shrink-0">
                   <TickerIcon className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
                 </div>
-                <span className="text-[11px] sm:text-xs font-bold tracking-wider text-white uppercase drop-shadow-2xs">
+                <span className="text-[11px] sm:text-xs font-bold tracking-wider text-white uppercase">
                   {currentTicker.text}
                 </span>
-                <span className="hidden sm:inline-block text-[10px] font-bold text-[#D4A362] bg-[#C58E47]/20 px-1.5 py-0.5 rounded-full border border-[#C58E47]/30">
+                <span className="hidden sm:inline-block text-[10px] font-bold text-[#DFB775] bg-[#C58E47]/20 px-2 py-0.5 rounded-full border border-[#C58E47]/35">
                   {currentTicker.highlight}
                 </span>
               </div>
@@ -164,25 +173,25 @@ export default function Hero() {
 
             {/* Main Headline - Condensed Architectural Display with Signature Dancing Script Overlap */}
             <h1 className="animate-in fade-in duration-700 slide-in-from-bottom-3 delay-100 flex flex-col items-center justify-center text-center max-w-4xl mx-auto px-2 mb-3.5 sm:mb-4.5">
-              <span className="font-antonio font-bold text-[3.25rem] xs:text-[3.65rem] sm:text-6xl md:text-7xl lg:text-8xl xl:text-[6.5rem] tracking-tight uppercase leading-[0.9] sm:leading-[0.88] bg-gradient-to-b from-white via-[#FFF7E8] to-[#E5DAC8] bg-clip-text text-transparent [text-shadow:0_4px_24px_rgba(0,0,0,0.8)] select-none relative z-0">
+              <span className="font-antonio font-bold text-[3.25rem] xs:text-[3.65rem] sm:text-6xl md:text-7xl lg:text-8xl xl:text-[6.5rem] tracking-tight uppercase leading-[0.9] sm:leading-[0.88] bg-gradient-to-b from-white via-[#FFF7E8] to-[#E5DAC8] bg-clip-text text-transparent [text-shadow:0_4px_24px_rgba(0,0,0,0.75)] select-none relative z-0">
                 Wake Up Above
               </span>
-              <span className="font-dancing font-bold text-[3.85rem] xs:text-[4.25rem] sm:text-6xl md:text-7xl lg:text-8xl xl:text-[6.5rem] normal-case text-[#DFB775] [text-shadow:0_4px_16px_rgba(0,0,0,0.9),0_1px_3px_rgba(0,0,0,0.9)] leading-[1.0] sm:leading-[1.0] -mt-4 xs:-mt-5 sm:-mt-6 md:-mt-8 lg:-mt-10 relative z-10 inline-block select-none">
+              <span className="font-dancing font-bold text-[3.85rem] xs:text-[4.25rem] sm:text-6xl md:text-7xl lg:text-8xl xl:text-[6.5rem] normal-case text-[#DFB775] [text-shadow:0_4px_18px_rgba(0,0,0,0.85),0_1px_3px_rgba(0,0,0,0.9)] leading-[1.0] sm:leading-[1.0] -mt-4 xs:-mt-5 sm:-mt-6 md:-mt-8 lg:-mt-10 relative z-10 inline-block select-none">
                 The Clouds
               </span>
             </h1>
           </div>
 
           {/* Subheadline - Stays grounded in its balanced position */}
-          <p className="animate-in fade-in duration-700 slide-in-from-bottom-3 delay-200 max-w-xl text-xs sm:text-sm md:text-base text-white/85 font-normal leading-relaxed drop-shadow-sm px-2 mb-7 sm:mb-9 md:mb-10">
+          <p className="animate-in fade-in duration-700 slide-in-from-bottom-3 delay-200 max-w-xl text-xs sm:text-sm md:text-base text-white/90 font-normal leading-relaxed drop-shadow-sm px-2 mb-7 sm:mb-9 md:mb-10">
             A quiet family-run bungalow in Ohiya, offering panoramic pine valley views and easy morning trips to Horton Plains.
           </p>
 
-          {/* Balanced Action Buttons Block - Slightly more compact and refined on mobile */}
+          {/* Balanced Action Buttons Block */}
           <div className="animate-in fade-in duration-700 slide-in-from-bottom-3 delay-300 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 w-full sm:w-auto">
             <Link
               href="/booking"
-              className="w-[78%] xs:w-[72%] sm:w-auto max-w-[270px] sm:max-w-none min-w-[210px] sm:min-w-[215px] inline-flex items-center justify-center gap-2 px-5 sm:px-7 py-3 rounded-full bg-[#C58E47] hover:bg-[#A97633] text-white font-semibold text-xs sm:text-sm shadow-lg shadow-[#C58E47]/25 hover:scale-103 active:scale-97 transition-all duration-200 border border-[#D4A362]/40"
+              className="w-[78%] xs:w-[72%] sm:w-auto max-w-[270px] sm:max-w-none min-w-[210px] sm:min-w-[220px] inline-flex items-center justify-center gap-2 px-6 sm:px-7 py-3.5 rounded-full bg-gradient-to-r from-[#C58E47] to-[#B37C35] hover:from-[#D4A362] hover:to-[#C58E47] text-white font-semibold text-xs sm:text-sm shadow-xl shadow-black/30 hover:scale-103 active:scale-97 transition-all duration-200 border border-[#DFB775]/50"
             >
               <Calendar className="w-3.5 h-3.5" />
               <span>Reserve Your Stay</span>
@@ -190,13 +199,23 @@ export default function Hero() {
 
             <Link
               href="/#rooms"
-              className="w-[78%] xs:w-[72%] sm:w-auto max-w-[270px] sm:max-w-none min-w-[210px] sm:min-w-[215px] inline-flex items-center justify-center gap-2 px-5 sm:px-7 py-3 rounded-full bg-white/15 hover:bg-white/25 text-white font-semibold text-xs sm:text-sm backdrop-blur-md border border-white/35 hover:border-white shadow-md hover:scale-103 active:scale-97 transition-all duration-200"
+              className="w-[78%] xs:w-[72%] sm:w-auto max-w-[270px] sm:max-w-none min-w-[210px] sm:min-w-[220px] inline-flex items-center justify-center gap-2 px-6 sm:px-7 py-3.5 rounded-full bg-black/35 hover:bg-black/55 text-white font-semibold text-xs sm:text-sm border border-white/40 hover:border-[#DFB775] shadow-lg hover:scale-103 active:scale-97 transition-all duration-200"
             >
               <span>Explore Rooms &amp; Rates</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </Link>
           </div>
         </div>
+
+        {/* Minimal Editorial Scroll Cue */}
+        <Link
+          href="/#rooms"
+          aria-label="Scroll down to rooms"
+          className="absolute bottom-6 sm:bottom-8 left-1/2 -translate-x-1/2 inline-flex flex-col items-center gap-1 text-[10px] uppercase tracking-[0.25em] text-white/65 hover:text-[#DFB775] transition-colors"
+        >
+          <span className="hidden sm:inline">Explore</span>
+          <ChevronDown className="w-4 h-4 animate-float-gentle" />
+        </Link>
       </div>
     </section>
   );

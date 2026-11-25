@@ -101,12 +101,12 @@ export default function LocationSection() {
             return (
               <div
                 key={item.slug}
-                className="scroll-reveal group flex flex-col bg-[#FAF9F5] hover:bg-white rounded-3xl border border-[#EAE5DC] hover:border-[#DFB775] overflow-hidden transition-all duration-300 hover:shadow-xl hover:-translate-y-1"
+                className="editorial-card group flex flex-col bg-[#FAF8F4] hover:bg-white rounded-[26px] border border-[#E6DFD3] hover:border-[#DFB775] overflow-hidden"
               >
-                {/* Real Photo Thumbnail with Scroll Reveal */}
+                {/* Real Photo Thumbnail */}
                 <Link
                   href={`/attractions/${item.slug}`}
-                  className="scroll-reveal-img relative h-52 sm:h-56 w-full overflow-hidden block bg-gray-200"
+                  className="relative h-52 sm:h-56 w-full overflow-hidden block bg-stone-200"
                 >
                   <Image
                     src={item.heroImage}
@@ -114,19 +114,19 @@ export default function LocationSection() {
                     fill
                     sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                     loading="eager"
-                    className="object-cover group-hover:scale-108 transition-transform duration-500"
+                    className="object-cover group-hover:scale-106 transition-transform duration-500 transform-gpu"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent" />
 
                   {/* Top Badges */}
                   <div className="absolute top-3 left-3 right-3 flex items-center justify-between gap-2">
-                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-[#243D2C]/90 text-[#F6EFE6] backdrop-blur-md border border-white/10 shadow-xs">
+                    <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-bold bg-[#0D1912]/80 text-[#F6EFE6] border border-white/15 shadow-xs">
                       <Icon className="w-3 h-3 text-[#C58E47]" />
                       <span>{item.categoryLabel}</span>
                     </span>
 
                     {item.featured && (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#C58E47] text-white shadow-xs">
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-[#C58E47] text-white shadow-xs">
                         <Sparkles className="w-3 h-3" />
                         <span>Key Highlight</span>
                       </span>
@@ -135,11 +135,11 @@ export default function LocationSection() {
 
                   {/* Bottom overlay info inside photo */}
                   <div className="absolute bottom-3 left-3 right-3 flex items-end justify-between text-white">
-                    <div className="flex items-center gap-1.5 text-xs font-semibold bg-black/50 backdrop-blur-md px-2.5 py-1 rounded-lg">
+                    <div className="flex items-center gap-1.5 text-xs font-semibold bg-black/60 px-2.5 py-1 rounded-lg">
                       <MapPin className="w-3.5 h-3.5 text-[#C58E47]" />
                       <span>{item.distance}</span>
                     </div>
-                    <div className="flex items-center gap-1 text-[11px] bg-black/50 backdrop-blur-md px-2 py-1 rounded-lg">
+                    <div className="flex items-center gap-1 text-[11px] bg-black/60 px-2 py-1 rounded-lg">
                       <Clock className="w-3 h-3 text-gray-300" />
                       <span>{item.travelTime}</span>
                     </div>

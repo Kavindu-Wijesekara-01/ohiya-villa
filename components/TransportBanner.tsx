@@ -14,19 +14,18 @@ export default function TransportBanner() {
   return (
     <section
       id="transport"
-      className="py-14 sm:py-20 lg:py-24 bg-[#0d1912] text-white relative overflow-hidden"
+      className="py-14 sm:py-20 lg:py-24 bg-[#0D1912] text-white relative overflow-hidden"
     >
-      {/* 3D Atmospheric Highlands Ambient Glows */}
-      <div className="absolute top-1/4 -left-36 w-96 h-96 rounded-full bg-[#C58E47]/10 blur-[130px] pointer-events-none" />
-      <div className="absolute bottom-1/4 -right-36 w-96 h-96 rounded-full bg-[#243D2C]/30 blur-[140px] pointer-events-none" />
+      {/* Zero-lag Atmospheric Highlands Radial Spotlights */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_55%_45%_at_10%_30%,rgba(197,142,71,0.10)_0%,transparent_70%),radial-gradient(ellipse_55%_45%_at_90%_75%,rgba(36,61,44,0.35)_0%,transparent_70%)] pointer-events-none" />
       <div className="absolute inset-0 opacity-[0.025] bg-[radial-gradient(#C58E47_1px,transparent_1px)] [background-size:24px_24px] pointer-events-none" />
 
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         {/* Header Block */}
         <div className="scroll-reveal text-center max-w-2xl mx-auto mb-16 sm:mb-20 lg:mb-24">
           {/* Eyebrow Pill */}
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/[0.06] border border-[#C58E47]/35 mb-4 backdrop-blur-md shadow-sm">
-            <Compass className="w-3.5 h-3.5 text-[#D4A362] animate-pulse" />
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/[0.06] border border-[#C58E47]/35 mb-4 shadow-sm">
+            <Compass className="w-3.5 h-3.5 text-[#D4A362]" />
             <span className="text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-[#F6EFE6]">
               Direct Transport • Horton Plains &amp; Scenic Trails
             </span>
@@ -48,12 +47,12 @@ export default function TransportBanner() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-y-20 md:gap-x-7 lg:gap-x-9 items-stretch pt-4 sm:pt-6 mb-12 sm:mb-14">
           
           {/* Card 1: Private Mountain Tour Car */}
-          <div className="scroll-reveal delay-100 group relative rounded-[28px] bg-[#122218] border border-[#233f2c]/85 px-6 sm:px-8 pb-7 flex flex-col justify-between shadow-2xl transition-all duration-300 hover:border-[#C58E47]/60 hover:shadow-[0_24px_50px_rgba(0,0,0,0.55)]">
+          <div className="group relative rounded-[28px] bg-gradient-to-b from-[#13251A] to-[#0F1E15] border border-[#25402E] px-6 sm:px-8 pb-7 flex flex-col justify-between shadow-2xl transition-all duration-300 hover:border-[#C58E47]/60 hover:-translate-y-1">
             
-            {/* Pop-out Vehicle Stage - Extended Smooth Fade-Up on Scroll */}
-            <div className="scroll-reveal-vehicle delay-150 relative -mt-14 sm:-mt-20 md:-mt-24 h-52 sm:h-60 lg:h-64 flex flex-col items-center justify-end mb-4 pointer-events-none">
-              {/* Warm Backlight Glow behind Car */}
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-40 bg-[#C58E47]/15 rounded-full blur-3xl -z-10" />
+            {/* Pop-out Vehicle Stage */}
+            <div className="relative -mt-14 sm:-mt-20 md:-mt-24 h-52 sm:h-60 lg:h-64 flex flex-col items-center justify-end mb-4 pointer-events-none">
+              {/* Zero-lag Radial Backlight Glow */}
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-40 bg-[radial-gradient(ellipse_at_center,rgba(197,142,71,0.18)_0%,transparent_70%)] -z-10" />
               
               <div className="relative w-full h-full flex items-end justify-center">
                 <Image
@@ -117,12 +116,12 @@ export default function TransportBanner() {
           </div>
 
           {/* Card 2: 2 Highland Scooters */}
-          <div className="scroll-reveal delay-200 group relative rounded-[28px] bg-[#122218] border border-[#233f2c]/85 px-6 sm:px-8 pb-7 flex flex-col justify-between shadow-2xl transition-all duration-300 hover:border-[#C58E47]/60 hover:shadow-[0_24px_50px_rgba(0,0,0,0.55)]">
+          <div className="group relative rounded-[28px] bg-gradient-to-b from-[#13251A] to-[#0F1E15] border border-[#25402E] px-6 sm:px-8 pb-7 flex flex-col justify-between shadow-2xl transition-all duration-300 hover:border-[#C58E47]/60 hover:-translate-y-1">
             
-            {/* Pop-out Vehicle Stage - Extended Smooth Fade-Up on Scroll */}
-            <div className="scroll-reveal-vehicle delay-300 relative -mt-14 sm:-mt-20 md:-mt-24 h-52 sm:h-60 lg:h-64 flex flex-col items-center justify-end mb-4 pointer-events-none">
-              {/* Warm Backlight Glow behind Scooters */}
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-40 bg-[#C58E47]/15 rounded-full blur-3xl -z-10" />
+            {/* Pop-out Vehicle Stage */}
+            <div className="relative -mt-14 sm:-mt-20 md:-mt-24 h-52 sm:h-60 lg:h-64 flex flex-col items-center justify-end mb-4 pointer-events-none">
+              {/* Zero-lag Radial Backlight Glow behind Scooters */}
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-64 h-40 bg-[radial-gradient(ellipse_at_center,rgba(197,142,71,0.18)_0%,transparent_70%)] -z-10" />
               
               <div className="relative w-full h-full flex items-end justify-center">
                 <Image

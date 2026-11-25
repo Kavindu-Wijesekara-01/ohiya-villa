@@ -63,14 +63,17 @@ export default function FaqSection() {
         </div>
 
         {/* FAQ Accordion */}
-        <div className="scroll-reveal space-y-4">
+        <div className="space-y-3.5">
           {faqs.map((faq, index) => {
             const isOpen = openFaq === index;
             return (
               <div
                 key={index}
-                className="scroll-reveal bg-[#FAF9F5] rounded-2xl border border-[#EAE5DC] hover:border-[#DFB775]/60 overflow-hidden transition-all duration-300"
-                style={{ transitionDelay: `${index * 60}ms` }}
+                className={`rounded-2xl border overflow-hidden transition-all duration-200 ${
+                  isOpen
+                    ? "bg-white border-[#C58E47]/60 shadow-[0_12px_28px_-14px_rgba(36,61,44,0.14)]"
+                    : "bg-[#FAF8F4] border-[#E6DFD3] hover:border-[#DFB775]"
+                }`}
               >
                 <button
                   type="button"

@@ -38,8 +38,8 @@ export default function Navbar() {
     <header
       className={`fixed top-0 left-0 right-0 z-50 w-full transition-all duration-300 ${
         isSolid
-          ? "bg-[#0D1912] border-b border-[#233F2C]/80 shadow-md text-white"
-          : "bg-gradient-to-b from-black/85 via-black/45 to-transparent text-white"
+          ? "bg-[#0D1912]/95 backdrop-blur-md border-b border-[#C58E47]/20 shadow-[0_8px_30px_rgba(0,0,0,0.22)] text-white"
+          : "bg-gradient-to-b from-black/80 via-black/40 to-transparent text-white"
       }`}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between">
@@ -49,7 +49,7 @@ export default function Navbar() {
           className="flex items-center gap-2.5 sm:gap-3 group focus:outline-hidden"
         >
           {/* Clear, High-Visibility Circular Logo Badge */}
-          <div className="relative w-9 h-9 sm:w-11 sm:h-11 rounded-full overflow-hidden border-2 border-[#C58E47]/80 shadow-md flex-shrink-0 bg-white ring-1 ring-black/20">
+          <div className="relative w-9 h-9 sm:w-11 sm:h-11 rounded-full overflow-hidden border-2 border-[#C58E47]/85 shadow-md flex-shrink-0 bg-white ring-2 ring-[#DFB775]/15">
             <Image
               src="/logo.jpeg"
               alt="Dawn Breezy Bungalow Logo"
@@ -61,10 +61,10 @@ export default function Navbar() {
           </div>
           {/* Clean, Refined Brand Typography - Stacked Two-Line Luxury Wordmark */}
           <div className="flex flex-col justify-center">
-            <span className="font-brand text-xs sm:text-[13px] tracking-[0.22em] uppercase font-bold text-white group-hover:text-[#D4A362] transition-colors leading-tight">
+            <span className="font-brand text-xs sm:text-[13px] tracking-[0.24em] uppercase font-bold text-white group-hover:text-[#DFB775] transition-colors leading-tight">
               Dawn Breezy
             </span>
-            <span className="font-brand text-[10.5px] sm:text-[11.5px] tracking-[0.32em] uppercase font-bold text-[#C58E47] group-hover:text-[#DFB775] transition-colors leading-tight mt-0.5">
+            <span className="font-brand text-[10.5px] sm:text-[11.5px] tracking-[0.34em] uppercase font-bold text-[#C58E47] group-hover:text-[#DFB775] transition-colors leading-tight mt-0.5">
               Bungalow
             </span>
           </div>
@@ -72,14 +72,14 @@ export default function Navbar() {
 
         {/* Center Nav Links - Clean & Sharp (Visible on Tablet & Desktop) */}
         <nav
-          className="hidden md:flex items-center gap-4 lg:gap-7"
+          className="hidden md:flex items-center gap-5 lg:gap-7"
           aria-label="Main Navigation"
         >
           {navLinks.map((link) => (
             <Link
               key={link.name}
               href={link.href}
-              className="text-xs lg:text-[13px] font-medium tracking-wide text-white/90 hover:text-[#D4A362] transition-colors duration-200"
+              className="relative py-1 text-xs lg:text-[13px] font-medium tracking-wide text-white/85 hover:text-[#DFB775] transition-colors duration-200 after:content-[''] after:absolute after:left-0 after:bottom-0 after:h-[1.5px] after:w-0 after:bg-[#C58E47] hover:after:w-full after:transition-all after:duration-300"
             >
               {link.name}
             </Link>
@@ -90,7 +90,7 @@ export default function Navbar() {
         <div className="hidden md:flex items-center gap-2">
           <Link
             href="/booking"
-            className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-full bg-[#C58E47] hover:bg-[#A97633] text-white text-xs font-semibold transition-all duration-200 shadow-md hover:scale-103 active:scale-97"
+            className="inline-flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-full bg-gradient-to-r from-[#C58E47] to-[#B37C35] hover:from-[#D4A362] hover:to-[#C58E47] text-white text-xs font-semibold tracking-wide transition-all duration-200 shadow-md shadow-[#C58E47]/20 border border-[#DFB775]/40 hover:scale-103 active:scale-97"
           >
             <span>Book Your Stay</span>
           </Link>

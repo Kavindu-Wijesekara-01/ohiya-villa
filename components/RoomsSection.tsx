@@ -293,7 +293,7 @@ export default function RoomsSection({ onSelectPhoto }: RoomSectionProps) {
             return (
               <div
                 key={room.id}
-                className="scroll-reveal bg-[#FAF9F5] rounded-3xl border border-[#EAE5DC] overflow-hidden shadow-sm hover:shadow-2xl hover:border-[#DFB775]/60 transition-all duration-300"
+                className="editorial-card bg-white rounded-[28px] border border-[#E6DFD3] hover:border-[#DFB775]/80 overflow-hidden"
               >
                 <div
                   className={`flex flex-col ${
@@ -301,32 +301,32 @@ export default function RoomsSection({ onSelectPhoto }: RoomSectionProps) {
                   } items-stretch`}
                 >
                   {/* Column 1: Interactive Photo Showcase (50% on Desktop) */}
-                  <div className="lg:w-1/2 p-3 sm:p-5 lg:p-7 flex flex-col bg-[#F5F2EB]/50 border-b lg:border-b-0 border-[#EAE5DC]">
-                    {/* Main Active Photo - Expands to fill available vertical space with Luxury Scroll Reveal */}
-                    <div className="scroll-reveal-img relative flex-1 min-h-[300px] sm:min-h-[400px] lg:min-h-[500px] w-full rounded-2xl overflow-hidden group shadow-md bg-gray-100">
+                  <div className="lg:w-1/2 p-3 sm:p-5 lg:p-7 flex flex-col bg-[#FAF7F1] border-b lg:border-b-0 border-[#EAE5DC]">
+                    {/* Main Active Photo */}
+                    <div className="relative flex-1 min-h-[300px] sm:min-h-[400px] lg:min-h-[500px] w-full rounded-[20px] overflow-hidden group shadow-md ring-1 ring-black/5 bg-gray-100">
                       <Image
                         src={currentPhoto.url}
                         alt={currentPhoto.caption}
                         fill
                         sizes="(max-width: 1024px) 100vw, 50vw"
-                        className="object-cover object-center transition-all duration-500 ease-out"
+                        className="object-cover object-center transition-transform duration-500 ease-out transform-gpu group-hover:scale-[1.02]"
                         priority={roomIdx === 0}
                       />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-black/30 pointer-events-none" />
 
                       {/* Top Badges */}
                       <div className="absolute top-3.5 left-3.5 right-3.5 flex items-center justify-between">
-                        <span className="px-3 py-1 rounded-full text-[11px] font-bold bg-[#142319]/80 backdrop-blur-md text-white border border-white/20 shadow-xs uppercase tracking-wider font-mono">
+                        <span className="px-3 py-1 rounded-full text-[11px] font-bold bg-[#0D1912]/80 text-white border border-white/20 shadow-xs uppercase tracking-wider font-mono">
                           {room.roomNumber} • ON THE HILLS
                         </span>
-                        <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-black/50 backdrop-blur-md text-white border border-white/15 font-mono">
+                        <span className="px-2.5 py-1 rounded-full text-[11px] font-bold bg-black/65 text-white border border-white/15 font-mono">
                           0{currentPhotoIdx + 1} / 0{room.photos.length}
                         </span>
                       </div>
 
                       {/* Bottom Caption Overlay */}
                       <div className="absolute bottom-3.5 left-3.5 right-16">
-                        <span className="text-[10px] uppercase font-mono tracking-wider text-white/75 block mb-0.5">
+                        <span className="text-[10px] uppercase font-mono tracking-wider text-white/80 block mb-0.5">
                           {room.name}
                         </span>
                         <p className="font-serif italic text-lg sm:text-xl text-[#DFB775] font-normal [text-shadow:0_2px_8px_rgba(0,0,0,0.85)] truncate">
@@ -339,7 +339,7 @@ export default function RoomsSection({ onSelectPhoto }: RoomSectionProps) {
                         <button
                           type="button"
                           onClick={() => handlePrevPhoto(room.id, room.photos.length)}
-                          className="w-8 h-8 rounded-full bg-black/60 hover:bg-black/85 text-white flex items-center justify-center backdrop-blur-md border border-white/20 transition-all hover:scale-105 active:scale-95 shadow-md"
+                          className="w-8 h-8 rounded-full bg-black/65 hover:bg-black/85 text-white flex items-center justify-center border border-white/20 transition-transform hover:scale-105 active:scale-95 shadow-md"
                           aria-label="Previous photo"
                         >
                           <ChevronLeft className="w-4 h-4" />
@@ -347,7 +347,7 @@ export default function RoomsSection({ onSelectPhoto }: RoomSectionProps) {
                         <button
                           type="button"
                           onClick={() => handleNextPhoto(room.id, room.photos.length)}
-                          className="w-8 h-8 rounded-full bg-black/60 hover:bg-black/85 text-white flex items-center justify-center backdrop-blur-md border border-white/20 transition-all hover:scale-105 active:scale-95 shadow-md"
+                          className="w-8 h-8 rounded-full bg-black/65 hover:bg-black/85 text-white flex items-center justify-center border border-white/20 transition-transform hover:scale-105 active:scale-95 shadow-md"
                           aria-label="Next photo"
                         >
                           <ChevronRight className="w-4 h-4" />
@@ -359,7 +359,7 @@ export default function RoomsSection({ onSelectPhoto }: RoomSectionProps) {
                         <button
                           type="button"
                           onClick={() => onSelectPhoto(currentPhoto.url, currentPhoto.caption)}
-                          className="absolute top-3.5 right-14 w-7 h-7 rounded-full bg-black/40 hover:bg-black/70 text-white flex items-center justify-center backdrop-blur-md transition-colors"
+                          className="absolute top-3.5 right-16 w-7 h-7 rounded-full bg-black/55 hover:bg-black/80 text-white flex items-center justify-center border border-white/15 transition-colors"
                           aria-label="View photo in lightbox"
                         >
                           <Maximize2 className="w-3.5 h-3.5" />
@@ -468,8 +468,8 @@ export default function RoomsSection({ onSelectPhoto }: RoomSectionProps) {
                         ))}
                       </div>
 
-                      {/* Direct Rates & Payment Badge - Spacious & Unclipped */}
-                      <div className="mb-6 p-4 rounded-2xl bg-white/90 border border-[#EAE5DC] flex flex-wrap items-center justify-between gap-3 shadow-2xs">
+                      {/* Direct Rates & Payment Badge */}
+                      <div className="mb-6 p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-[#FAF7F1] to-white border border-[#E6DDD0] flex flex-wrap items-center justify-between gap-3 shadow-2xs">
                         <div>
                           <span className="text-[11px] sm:text-xs text-[#4A5D50] block mb-0.5 font-bold uppercase tracking-wider">
                             Direct Booking Rate
@@ -483,7 +483,7 @@ export default function RoomsSection({ onSelectPhoto }: RoomSectionProps) {
                             </span>
                           </div>
                         </div>
-                        <span className="px-3 py-1.5 rounded-full bg-[#FAF9F5] border border-[#C58E47]/30 text-[10px] sm:text-[11px] font-bold text-[#243D2C] uppercase tracking-wider">
+                        <span className="px-3 py-1.5 rounded-full bg-white border border-[#C58E47]/35 text-[10px] sm:text-[11px] font-bold text-[#243D2C] uppercase tracking-wider shadow-2xs">
                           {room.paymentBadge}
                         </span>
                       </div>
@@ -494,7 +494,7 @@ export default function RoomsSection({ onSelectPhoto }: RoomSectionProps) {
                       <div className="flex flex-col sm:flex-row items-center gap-2.5 sm:gap-3 mb-4">
                         <Link
                           href={`/booking?room=${room.id === "double-room" ? "double" : room.id === "triple-room" ? "triple" : "full"}`}
-                          className="w-full sm:flex-1 min-h-[46px] inline-flex items-center justify-center gap-2 py-3 px-6 rounded-xl bg-[#C58E47] hover:bg-[#A97633] text-white text-xs sm:text-sm font-bold shadow-md hover:scale-102 active:scale-98 transition-all"
+                          className="w-full sm:flex-1 min-h-[48px] inline-flex items-center justify-center gap-2 py-3 px-6 rounded-xl bg-gradient-to-r from-[#C58E47] to-[#B37C35] hover:from-[#D4A362] hover:to-[#C58E47] text-white text-xs sm:text-sm font-bold shadow-md shadow-[#C58E47]/20 hover:scale-102 active:scale-98 transition-all"
                         >
                           <CheckCircle2 className="w-4 h-4 text-white" />
                           <span>Reserve This Room</span>
@@ -502,7 +502,7 @@ export default function RoomsSection({ onSelectPhoto }: RoomSectionProps) {
 
                         <a
                           href="#contact"
-                          className="w-full sm:w-auto min-h-[46px] inline-flex items-center justify-center gap-2 py-3 px-5 rounded-xl bg-white hover:bg-[#F8F9F7] text-[#243D2C] border border-[#E2E6E3] text-xs sm:text-sm font-semibold transition-all hover:scale-102 active:scale-98"
+                          className="w-full sm:w-auto min-h-[48px] inline-flex items-center justify-center gap-2 py-3 px-5 rounded-xl bg-[#FAF8F4] hover:bg-[#F2EFE8] text-[#243D2C] border border-[#E0D9CD] text-xs sm:text-sm font-semibold transition-all hover:scale-102 active:scale-98"
                         >
                           <Users className="w-4 h-4 text-[#C58E47]" />
                           <span>Room Inquiries</span>

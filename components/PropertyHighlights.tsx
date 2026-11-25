@@ -37,14 +37,14 @@ export default function PropertyHighlights() {
   ];
 
   return (
-    <section className="bg-[#FAF8F4] border-y border-[#EAE5DC] py-12 sm:py-16 lg:py-20 relative overflow-hidden">
-      {/* Subtle ambient blur behind cards */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[350px] bg-[#DFB775]/5 blur-3xl pointer-events-none rounded-full" />
+    <section className="bg-[#FAF8F4] border-y border-[#E6E0D5] py-12 sm:py-16 lg:py-20 relative overflow-hidden">
+      {/* Zero-lag radial ambient glow behind cards */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_50%_at_50%_50%,rgba(223,183,117,0.11)_0%,transparent_75%)] pointer-events-none" />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         {/* Editorial Section Header */}
         <div className="scroll-reveal text-center max-w-2xl mx-auto mb-8 sm:mb-12">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#DFB775]/15 border border-[#DFB775]/30 text-[10px] sm:text-[11px] font-mono uppercase tracking-[0.2em] text-[#243D2C] mb-3">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#DFB775]/15 border border-[#DFB775]/35 text-[10px] sm:text-[11px] font-mono uppercase tracking-[0.2em] text-[#243D2C] mb-3">
             <Sparkles className="w-3.5 h-3.5 text-[#C58E47]" />
             <span>Essential Highland Comforts</span>
           </div>
@@ -61,12 +61,12 @@ export default function PropertyHighlights() {
             return (
               <div
                 key={item.title}
-                className={`scroll-reveal group relative bg-white/80 backdrop-blur-md rounded-2xl p-4 sm:p-5 border border-[#EAE5DC] hover:border-[#DFB775] shadow-xs hover:shadow-xl hover:shadow-[#243D2C]/8 transition-all duration-300 hover:-translate-y-1.5 flex flex-col justify-between ${isLastOnMobile ? "col-span-2 md:col-span-1" : ""
-                  }`}
-                style={{ transitionDelay: `${idx * 60}ms` }}
+                className={`editorial-card group relative bg-white rounded-[22px] p-4 sm:p-5 border border-[#E6E0D5] hover:border-[#DFB775] flex flex-col justify-between ${
+                  isLastOnMobile ? "col-span-2 md:col-span-1" : ""
+                }`}
               >
                 {/* Ambient hover glow inside card */}
-                <div className="absolute inset-0 bg-gradient-to-br from-[#FAF5EE] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl pointer-events-none" />
+                <div className="absolute inset-0 bg-gradient-to-br from-[#FAF6EE] to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-[22px] pointer-events-none" />
 
                 <div className="relative z-10">
                   {/* Top Bar: Icon Badge + Micro Tag */}

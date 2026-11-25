@@ -242,14 +242,13 @@ export default function GallerySection({ onOpenPhoto }: GallerySectionProps) {
           </button>
         </div>
 
-        {/* Asymmetric 2-Column Mobile & 3/4-Column Desktop Editorial Masonry with Smooth Scroll Reveal */}
-        <div className="columns-2 md:columns-3 lg:columns-4 gap-2.5 sm:gap-3.5 lg:gap-4 space-y-2.5 sm:space-y-3.5 lg:space-y-4">
+        {/* Asymmetric 2-Column Mobile & 3/4-Column Desktop Editorial Masonry */}
+        <div className="columns-2 md:columns-3 lg:columns-4 gap-3 sm:gap-4 space-y-3 sm:space-y-4">
           {filteredItems.map((item, idx) => (
             <div
               key={`${item.src}-${idx}`}
               onClick={() => onOpenPhoto(item.src, item.subtitle ? `${item.title}. ${item.subtitle}` : item.title)}
-              className={`scroll-reveal-img break-inside-avoid group relative ${item.aspect} w-full rounded-2xl sm:rounded-3xl overflow-hidden bg-gray-200 border border-[#EAE6DF] shadow-xs cursor-pointer hover:shadow-2xl transition-all duration-500 hover:-translate-y-1.5`}
-              style={{ transitionDelay: `${(idx % 4) * 85}ms` }}
+              className={`editorial-card break-inside-avoid group relative ${item.aspect} w-full rounded-[22px] sm:rounded-[26px] overflow-hidden bg-stone-200 border border-[#E5DED2] ring-1 ring-inset ring-black/5 cursor-pointer`}
             >
               <Image
                 src={item.src}
@@ -258,14 +257,14 @@ export default function GallerySection({ onOpenPhoto }: GallerySectionProps) {
                 sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
                 loading="lazy"
                 unoptimized={item.src.startsWith("data:") || item.src.startsWith("/uploads/")}
-                className="object-cover group-hover:scale-106 transition-transform duration-700 ease-out"
+                className="object-cover group-hover:scale-106 transition-transform duration-700 ease-out transform-gpu"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/15 to-transparent opacity-65 group-hover:opacity-90 transition-opacity" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/15 to-transparent opacity-70 group-hover:opacity-90 transition-opacity duration-300" />
 
               {/* Caption & Expand Action on Hover */}
-              <div className="absolute inset-0 p-3 sm:p-4 flex flex-col justify-between pointer-events-none">
-                <div className="flex justify-end opacity-0 group-hover:opacity-100 transition-opacity">
-                  <div className="p-1.5 sm:p-2 rounded-full bg-black/45 text-white backdrop-blur-md shadow-xs">
+              <div className="absolute inset-0 p-3.5 sm:p-4 flex flex-col justify-between pointer-events-none">
+                <div className="flex justify-end opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                  <div className="p-2 rounded-full bg-black/55 text-white border border-white/20 shadow-xs">
                     <Maximize2 className="w-3.5 h-3.5" />
                   </div>
                 </div>

@@ -138,9 +138,9 @@ export default function HostAndReviews() {
         </div>
 
         {/* 2-Column Luxury Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-12 items-stretch mb-8 sm:mb-10">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-10 items-stretch mb-8 sm:mb-10">
           {/* Left Column: Host Profile Card */}
-          <div className="lg:col-span-6 scroll-reveal bg-[#FAF9F5]/80 rounded-3xl p-5 sm:p-8 lg:p-10 border border-[#EAE5DC] shadow-xs flex flex-col justify-between hover-lift">
+          <div className="lg:col-span-6 editorial-card bg-white rounded-[28px] p-5 sm:p-8 lg:p-10 border border-[#E6DFD3] flex flex-col justify-between">
             <div>
               {/* Host Avatar & Details */}
               <div className="flex items-center gap-5 mb-7">
@@ -210,7 +210,7 @@ export default function HostAndReviews() {
           </div>
 
           {/* Right Column: Editorial Verified Reviews */}
-          <div className="lg:col-span-6 scroll-reveal bg-[#FAF9F5]/80 rounded-3xl p-5 sm:p-8 lg:p-10 border border-[#EAE5DC] shadow-xs flex flex-col justify-between hover-lift">
+          <div className="lg:col-span-6 editorial-card bg-white rounded-[28px] p-5 sm:p-8 lg:p-10 border border-[#E6DFD3] flex flex-col justify-between">
             <div>
               {/* Top Score Badge Banner */}
               <div className="flex items-center justify-between gap-4 mb-7 pb-6 border-b border-[#EAE5DC]">
