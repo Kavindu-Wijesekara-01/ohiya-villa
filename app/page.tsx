@@ -36,18 +36,22 @@ const ALL_PHOTOS = [
 
 export default function Home() {
   const [currentPhotoIndex, setCurrentPhotoIndex] = useState<number | null>(null);
+  const [customPhoto, setCustomPhoto] = useState<{ url: string; caption: string } | null>(null);
 
-  const handleOpenPhoto = (url: string, _caption: string) => {
+  const handleOpenPhoto = (url: string, caption: string) => {
     const idx = ALL_PHOTOS.findIndex((p) => p.url === url);
     if (idx !== -1) {
+      setCustomPhoto(null);
       setCurrentPhotoIndex(idx);
     } else {
-      setCurrentPhotoIndex(0);
+      setCurrentPhotoIndex(null);
+      setCustomPhoto({ url, caption });
     }
   };
 
   const handleClosePhoto = () => {
     setCurrentPhotoIndex(null);
+    setCustomPhoto(null);
   };
 
   const handlePrevPhoto = () => {
@@ -102,12 +106,24 @@ export default function Home() {
 
       {/* Accessible Photo Lightbox Modal with Next/Prev Navigation */}
       <PhotoLightbox
-        isOpen={currentPhotoIndex !== null}
-        photoUrl={currentPhotoIndex !== null ? ALL_PHOTOS[currentPhotoIndex].url : null}
-        caption={currentPhotoIndex !== null ? ALL_PHOTOS[currentPhotoIndex].caption : ""}
+        isOpen={currentPhotoIndex !== null || customPhoto !== null}
+        photoUrl={
+          customPhoto
+            ? customPhoto.url
+            : currentPhotoIndex !== null
+            ? ALL_PHOTOS[currentPhotoIndex].url
+            : null
+        }
+        caption={
+          customPhoto
+            ? customPhoto.caption
+            : currentPhotoIndex !== null
+            ? ALL_PHOTOS[currentPhotoIndex].caption
+            : ""
+        }
         onClose={handleClosePhoto}
-        onPrev={handlePrevPhoto}
-        onNext={handleNextPhoto}
+        onPrev={currentPhotoIndex !== null ? handlePrevPhoto : undefined}
+        onNext={currentPhotoIndex !== null ? handleNextPhoto : undefined}
       />
     </main>
   );

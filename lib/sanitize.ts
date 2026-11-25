@@ -31,7 +31,25 @@ export function isValidDate(dateStr: unknown): boolean {
   return !isNaN(parsed.getTime());
 }
 
+export function isDatabaseUnavailableError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  const name = error.name || "";
+  const msg = error.message || "";
+  return (
+    name === "MongooseServerSelectionError" ||
+    name === "MongoNetworkError" ||
+    msg.includes("Could not connect to any servers in your MongoDB Atlas cluster") ||
+    msg.includes("IP whitelist") ||
+    msg.includes("ECONNREFUSED") ||
+    msg.includes("ENOTFOUND")
+  );
+}
+
 export function safeErrorMessage(error: unknown, fallback: string = "An unexpected error occurred. Please try again."): string {
+  if (isDatabaseUnavailableError(error)) {
+    console.error("[Database Unavailable]: MongoDB connection failed. Verify Atlas IP whitelist (0.0.0.0/0) and MONGODB_URI.");
+    return "Database connection unavailable right now. Please try again shortly or contact Susantha directly.";
+  }
   if (process.env.NODE_ENV !== "production" && error instanceof Error) {
     console.error("[Internal Server Error]:", error);
   } else if (error instanceof Error) {

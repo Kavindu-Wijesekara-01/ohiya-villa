@@ -79,6 +79,7 @@ export default function PhotoLightbox({
             alt={caption || "Dawn Breezy Bungalow photo"}
             fill
             sizes="95vw"
+            unoptimized={photoUrl.startsWith("data:") || photoUrl.startsWith("/uploads/")}
             className="object-contain"
             priority
           />

@@ -7,6 +7,12 @@ import Navbar from "@/components/Navbar";
 import ContactAndFooter from "@/components/ContactAndFooter";
 import FloatingWhatsApp from "@/components/FloatingWhatsApp";
 import {
+  formatLocalDateYMD,
+  isNightInRangeYMD,
+  rangesOverlapYMD,
+  toVillaYMD,
+} from "@/lib/bookingUtils";
+import {
   Calendar as CalendarIcon,
   Users,
   ChevronLeft,
@@ -91,6 +97,8 @@ interface BookedRange {
   _id: string;
   checkIn: string;
   checkOut: string;
+  checkInYMD?: string;
+  checkOutYMD?: string;
   roomType: string;
 }
 
@@ -146,27 +154,15 @@ function BookingContent() {
     };
   }, []);
 
-  const [checkInDate, setCheckInDate] = useState<Date | null>(() => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const dIn = new Date(today);
-    dIn.setDate(today.getDate() + 1);
-    return dIn;
-  });
-  const [checkOutDate, setCheckOutDate] = useState<Date | null>(() => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const dOut = new Date(today);
-    dOut.setDate(today.getDate() + 3);
-    return dOut;
-  });
+  const [checkInDate, setCheckInDate] = useState<Date | null>(null);
+  const [checkOutDate, setCheckOutDate] = useState<Date | null>(null);
   const [inMonth, setInMonth] = useState<Date | null>(() => {
     const today = new Date();
     return new Date(today.getFullYear(), today.getMonth(), 1);
   });
   const [outMonth, setOutMonth] = useState<Date | null>(() => {
     const today = new Date();
-    return new Date(today.getFullYear(), today.getMonth() + 1, 1);
+    return new Date(today.getFullYear(), today.getMonth(), 1);
   });
 
   const [bookedRanges, setBookedRanges] = useState<BookedRange[]>([]);
@@ -237,53 +233,72 @@ function BookingContent() {
     return copy;
   };
 
-  // Determine if a night is occupied in MongoDB
+  // Determine if a night is occupied in MongoDB using villa calendar dates (YYYY-MM-DD)
   const isNightBooked = useCallback(
     (targetDate: Date) => {
-      const targetTime = normalizeDate(targetDate).getTime();
+      const targetYMD = formatLocalDateYMD(targetDate);
       return bookedRanges.some((range) => {
-        const start = normalizeDate(new Date(range.checkIn)).getTime();
-        const end = normalizeDate(new Date(range.checkOut)).getTime();
-        return targetTime >= start && targetTime < end;
+        const startYMD = range.checkInYMD || toVillaYMD(range.checkIn);
+        const endYMD = range.checkOutYMD || toVillaYMD(range.checkOut);
+        if (!startYMD || !endYMD) return false;
+        return isNightInRangeYMD(targetYMD, startYMD, endYMD);
       });
     },
     [bookedRanges]
   );
 
   // Validation rules for check-in
-  const isCheckInDisabled = (targetDate: Date) => {
-    const today = normalizeDate(new Date());
-    const target = normalizeDate(targetDate);
-    if (target.getTime() < today.getTime()) return true;
-    return isNightBooked(target);
-  };
+  const isCheckInDisabled = useCallback(
+    (targetDate: Date) => {
+      const todayYMD = toVillaYMD(new Date());
+      const targetYMD = formatLocalDateYMD(targetDate);
+      if (targetYMD < todayYMD) return true;
+      return isNightBooked(targetDate);
+    },
+    [isNightBooked]
+  );
 
   // Validation rules for check-out (strict anti-overlap)
-  const isCheckOutDisabled = (targetDate: Date) => {
-    if (!checkInDate) return true;
-    const checkInNorm = normalizeDate(checkInDate);
-    const target = normalizeDate(targetDate);
+  const isCheckOutDisabled = useCallback(
+    (targetDate: Date, overrideCheckIn?: Date | null) => {
+      const effectiveIn = overrideCheckIn !== undefined ? overrideCheckIn : checkInDate;
+      if (!effectiveIn) return true;
 
-    // Check-out must be after check-in
-    if (target.getTime() <= checkInNorm.getTime()) return true;
+      const inYMD = formatLocalDateYMD(effectiveIn);
+      const outYMD = formatLocalDateYMD(targetDate);
 
-    // Must not span across any occupied night
-    const cur = new Date(checkInNorm);
-    while (cur.getTime() < target.getTime()) {
-      if (isNightBooked(cur)) {
-        return true;
-      }
-      cur.setDate(cur.getDate() + 1);
+      // Check-out must be strictly after check-in
+      if (outYMD <= inYMD) return true;
+
+      // Must not overlap any occupied range [startYMD, endYMD)
+      return bookedRanges.some((range) => {
+        const startYMD = range.checkInYMD || toVillaYMD(range.checkIn);
+        const endYMD = range.checkOutYMD || toVillaYMD(range.checkOut);
+        if (!startYMD || !endYMD) return false;
+        return rangesOverlapYMD(inYMD, outYMD, startYMD, endYMD);
+      });
+    },
+    [checkInDate, bookedRanges]
+  );
+
+  // Auto-clear selected dates if switching rooms or loading live dates reveals a conflict
+  useEffect(() => {
+    if (!checkInDate) return;
+    if (isCheckInDisabled(checkInDate)) {
+      setCheckInDate(null);
+      setCheckOutDate(null);
+      return;
     }
-
-    return false;
-  };
+    if (checkOutDate && isCheckOutDisabled(checkOutDate, checkInDate)) {
+      setCheckOutDate(null);
+    }
+  }, [bookedRanges, checkInDate, checkOutDate, isCheckInDisabled, isCheckOutDisabled]);
 
   // Calculate nights
   const nights =
     checkInDate && checkOutDate
       ? Math.max(1, Math.round((normalizeDate(checkOutDate).getTime() - normalizeDate(checkInDate).getTime()) / (1000 * 60 * 60 * 24)))
-      : 2;
+      : 0;
 
   // Format date helper
   const formatDate = (date: Date | null) => {
@@ -301,28 +316,24 @@ function BookingContent() {
     return new Date(year, month + 1, 0).getDate();
   };
 
-  // Handle clicking a day on Check-in calendar
+  // Handle clicking a day on Check-in calendar (selects 1 check-in day only; guest picks check-out next on the Check-out calendar)
   const handleCheckInSelect = (dateObj: Date) => {
     if (isCheckInDisabled(dateObj)) return;
     setCheckInDate(dateObj);
+    setCheckOutDate(null);
+    setErrorMessage("");
 
-    // If current check-out is now invalid or spans an occupied night
+    // Position the Check-out calendar on the next available check-out day's month
     const nextDay = new Date(dateObj);
     nextDay.setDate(dateObj.getDate() + 1);
-
-    if (!checkOutDate || checkOutDate <= dateObj || isCheckOutDisabled(checkOutDate)) {
-      if (!isCheckOutDisabled(nextDay)) {
-        setCheckOutDate(nextDay);
-      } else {
-        setCheckOutDate(null);
-      }
-    }
+    setOutMonth(new Date(nextDay.getFullYear(), nextDay.getMonth(), 1));
   };
 
   // Handle clicking a day on Check-out calendar
   const handleCheckOutSelect = (dateObj: Date) => {
     if (isCheckOutDisabled(dateObj)) return;
     setCheckOutDate(dateObj);
+    setErrorMessage("");
   };
 
   // Total price calculation
@@ -334,6 +345,12 @@ function BookingContent() {
     e.preventDefault();
     if (!checkInDate || !checkOutDate) {
       setErrorMessage("Please select both your check-in and check-out dates.");
+      return;
+    }
+
+    if (isCheckInDisabled(checkInDate) || isCheckOutDisabled(checkOutDate, checkInDate)) {
+      setErrorMessage("Selected dates overlap an existing booking for this room. Please choose available dates.");
+      fetchBookedDates(selectedRoom.id);
       return;
     }
 
@@ -357,8 +374,8 @@ function BookingContent() {
           customerEmail,
           roomType: selectedRoom.id,
           roomName: selectedRoom.name,
-          checkIn: checkInDate.toISOString(),
-          checkOut: checkOutDate.toISOString(),
+          checkIn: formatLocalDateYMD(checkInDate),
+          checkOut: formatLocalDateYMD(checkOutDate),
           guests: guestCount,
           specialRequests: fullSpecialRequests,
         }),
@@ -371,6 +388,7 @@ function BookingContent() {
         window.scrollTo({ top: 0, behavior: "smooth" });
       } else {
         setErrorMessage(data.message || "Failed to complete reservation. Please try again or select other dates.");
+        fetchBookedDates(selectedRoom.id);
       }
     } catch {
       setErrorMessage("A connection error occurred. Please verify your internet connection and try again.");
@@ -390,13 +408,21 @@ function BookingContent() {
     const daysCount = getDaysInMonth(year, month);
     const firstDay = new Date(year, month, 1).getDay();
 
+    const isWaitingForCheckIn = mode === "checkOut" && !checkInDate;
+
     return (
-      <div className="bg-white rounded-3xl p-5 sm:p-6 border border-[#EAE5DC] shadow-sm flex flex-col justify-between">
+      <div className={`bg-white rounded-3xl p-5 sm:p-6 border shadow-sm flex flex-col justify-between transition-all ${
+        isWaitingForCheckIn
+          ? "border-[#EAE5DC] opacity-80"
+          : mode === "checkOut" && checkInDate && !checkOutDate
+          ? "border-[#C58E47] ring-2 ring-[#C58E47]/15"
+          : "border-[#EAE5DC]"
+      }`}>
         {/* Month Header */}
         <div className="flex items-center justify-between mb-4">
           <div>
             <span className="text-[10px] font-bold uppercase tracking-wider text-[#C58E47] block">
-              {mode === "checkIn" ? "Step 2A: Arrival Date" : "Step 2B: Departure Date"}
+              {mode === "checkIn" ? "Step 2A: Check In Calendar" : "Step 2B: Check Out Calendar"}
             </span>
             <h4 className="font-serif text-base sm:text-lg font-bold text-[#243D2C]">
               {currentMonth.toLocaleDateString("en-US", { month: "long", year: "numeric" })}
@@ -423,6 +449,12 @@ function BookingContent() {
           </div>
         </div>
 
+        {isWaitingForCheckIn && (
+          <div className="mb-3 px-3 py-2 rounded-xl bg-[#FAF9F5] border border-[#EAE5DC] text-[11px] font-semibold text-[#7B887E] text-center">
+            Select your Check in date on the left calendar first
+          </div>
+        )}
+
         {/* Day Name Headers */}
         <div className="grid grid-cols-7 gap-1 text-center text-xs font-bold text-[#7B887E] mb-2 uppercase tracking-wider">
           <span>Su</span>
@@ -445,13 +477,10 @@ function BookingContent() {
             const dateObj = new Date(year, month, dayNum);
             dateObj.setHours(0, 0, 0, 0);
 
-            const isCheckIn = checkInDate && dateObj.getTime() === normalizeDate(checkInDate).getTime();
-            const isCheckOut = checkOutDate && dateObj.getTime() === normalizeDate(checkOutDate).getTime();
-            const isInRange =
-              checkInDate &&
-              checkOutDate &&
-              dateObj > normalizeDate(checkInDate) &&
-              dateObj < normalizeDate(checkOutDate);
+            // Strictly allow & highlight only 1 day per calendar:
+            // Check-in calendar shows ONLY the Check-in date; Check-out calendar shows ONLY the Check-out date.
+            const isCheckIn = mode === "checkIn" && Boolean(checkInDate && dateObj.getTime() === normalizeDate(checkInDate).getTime());
+            const isCheckOut = mode === "checkOut" && Boolean(checkOutDate && dateObj.getTime() === normalizeDate(checkOutDate).getTime());
 
             const booked = isNightBooked(dateObj);
             const disabled = mode === "checkIn" ? isCheckInDisabled(dateObj) : isCheckOutDisabled(dateObj);
@@ -476,8 +505,6 @@ function BookingContent() {
                       : "text-gray-300 cursor-not-allowed"
                     : isCheckIn || isCheckOut
                     ? "bg-[#243D2C] text-white shadow-md font-bold ring-2 ring-[#DFB775]/50 scale-102"
-                    : isInRange
-                    ? "bg-[#DFB775]/25 text-[#243D2C] rounded-md font-semibold"
                     : "hover:bg-[#FAF9F5] hover:border-[#DFB775] border border-transparent text-[#1F2923]"
                 }`}
               >
@@ -521,12 +548,14 @@ function BookingContent() {
   if (confirmedBooking) {
     const refCode = `#DBB-${(confirmedBooking._id || "").slice(-6).toUpperCase()}`;
     const checkInStr = new Date(confirmedBooking.checkIn).toLocaleDateString("en-US", {
+      timeZone: "Asia/Colombo",
       weekday: "short",
       month: "short",
       day: "numeric",
       year: "numeric",
     });
     const checkOutStr = new Date(confirmedBooking.checkOut).toLocaleDateString("en-US", {
+      timeZone: "Asia/Colombo",
       weekday: "short",
       month: "short",
       day: "numeric",

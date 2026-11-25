@@ -5,12 +5,13 @@ import Link from "next/link";
 import { Clock, MapPin, MessageCircle, Phone, Train, ArrowRight, Sparkles, UtensilsCrossed, ShieldCheck, Calendar } from "lucide-react";
 
 const NAV_LINKS = [
-  { label: "Rooms & Rates", href: "#rooms" },
-  { label: "Gallery", href: "#gallery" },
-  { label: "Horton Plains Transport", href: "#transport" },
-  { label: "Facilities", href: "#facilities" },
-  { label: "Nearby Attractions", href: "#nearby" },
-  { label: "FAQ", href: "#faq" },
+  { label: "Rooms & Rates", href: "/#rooms" },
+  { label: "Booking", href: "/booking" },
+  { label: "Gallery", href: "/#gallery" },
+  { label: "Horton Plains Transport", href: "/#transport" },
+  { label: "Facilities", href: "/#facilities" },
+  { label: "Nearby Attractions", href: "/#nearby" },
+  { label: "FAQ", href: "/#faq" },
   { label: "Contact", href: "#contact" },
 ];
 

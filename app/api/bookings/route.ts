@@ -1,27 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
 import connectToDatabase from "@/lib/mongodb";
 import Booking from "@/models/Booking";
+import Room from "@/models/Room";
 import { isAuthenticatedAdmin } from "@/lib/auth";
-import { sanitizeText, isValidEmail, isValidPhone, safeErrorMessage } from "@/lib/sanitize";
-
-type RoomType = "double" | "triple" | "full";
-
-/**
- * Intelligent room conflict resolver:
- * - 'double' conflicts with other 'double' bookings AND 'full' villa bookings.
- * - 'triple' conflicts with other 'triple' bookings AND 'full' villa bookings.
- * - 'full' conflicts with ANY room booking ('double', 'triple', or 'full').
- */
-function getConflictingRoomTypes(requestedRoom: string): RoomType[] {
-  if (requestedRoom === "double") {
-    return ["double", "full"];
-  }
-  if (requestedRoom === "triple") {
-    return ["triple", "full"];
-  }
-  // 'full' takes over the entire bungalow
-  return ["double", "triple", "full"];
-}
+import { sanitizeText, isValidEmail, isValidPhone, safeErrorMessage, isDatabaseUnavailableError } from "@/lib/sanitize";
+import {
+  calculateNightsYMD,
+  getConflictingRoomTypes,
+  getDefaultRoomMeta,
+  isValidRoomType,
+  parseBookingDateToUtcNoon,
+  toVillaYMD,
+  RoomType,
+} from "@/lib/bookingUtils";
+import {
+  buildConflictMessage,
+  findConflictingBooking,
+  withBookingLock,
+} from "@/lib/bookingServer";
 
 export async function GET(req: NextRequest) {
   try {
@@ -29,27 +25,38 @@ export async function GET(req: NextRequest) {
 
     const { searchParams } = new URL(req.url);
     const bookedDatesOnly = searchParams.get("bookedDates") === "true";
-    const roomType = searchParams.get("roomType") || "double";
+    const rawRoomType = searchParams.get("roomType") || "double";
+    const roomType: RoomType = isValidRoomType(rawRoomType) ? rawRoomType : "double";
 
     // Public endpoint for occupied / booked dates on calendar
     // Strictly projects only checkIn, checkOut, roomType to prevent any PII leakage
     if (bookedDatesOnly) {
       const conflictingTypes = getConflictingRoomTypes(roomType);
+      const yesterdayUtc = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
       const confirmedBookings = await Booking.find(
         {
           status: { $in: ["confirmed", "pending"] },
           roomType: { $in: conflictingTypes },
-          checkOut: { $gte: new Date() },
+          checkOut: { $gte: yesterdayUtc },
         },
         "checkIn checkOut roomType"
       )
         .lean()
         .exec();
 
+      const bookedRanges = confirmedBookings.map((b) => ({
+        _id: b._id,
+        checkIn: b.checkIn,
+        checkOut: b.checkOut,
+        checkInYMD: toVillaYMD(b.checkIn as Date),
+        checkOutYMD: toVillaYMD(b.checkOut as Date),
+        roomType: b.roomType,
+      }));
+
       return NextResponse.json({
         success: true,
-        bookedRanges: confirmedBookings,
+        bookedRanges,
       });
     }
 
@@ -60,7 +67,7 @@ export async function GET(req: NextRequest) {
     }
 
     const status = searchParams.get("status");
-    const query: any = {};
+    const query: Record<string, unknown> = {};
     if (status && status !== "all") {
       const cleanStatus = sanitizeText(status, 20);
       if (["pending", "confirmed", "cancelled", "completed"].includes(cleanStatus)) {
@@ -74,9 +81,12 @@ export async function GET(req: NextRequest) {
       success: true,
       bookings,
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     const message = safeErrorMessage(error, "Unable to load booking records.");
-    return NextResponse.json({ success: false, message }, { status: 500 });
+    return NextResponse.json(
+      { success: false, message },
+      { status: isDatabaseUnavailableError(error) ? 503 : 500 }
+    );
   }
 }
 
@@ -84,12 +94,14 @@ export async function POST(req: NextRequest) {
   try {
     await connectToDatabase();
 
-    let body: any;
+    let body: Record<string, unknown>;
     try {
       body = await req.json();
     } catch {
       return NextResponse.json({ success: false, message: "Invalid JSON payload" }, { status: 400 });
     }
+
+    const isAdmin = await isAuthenticatedAdmin();
 
     const {
       customerName,
@@ -101,6 +113,8 @@ export async function POST(req: NextRequest) {
       checkOut,
       guests,
       specialRequests,
+      status: requestedStatus,
+      totalPrice: requestedTotalPrice,
     } = body;
 
     const cleanName = sanitizeText(customerName, 80);
@@ -110,7 +124,7 @@ export async function POST(req: NextRequest) {
 
     if (!cleanName || cleanName.length < 2) {
       return NextResponse.json(
-        { success: false, message: "Please provide your name." },
+        { success: false, message: "Please provide the guest name." },
         { status: 400 }
       );
     }
@@ -136,110 +150,162 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const checkInDate = new Date(checkIn);
-    const checkOutDate = new Date(checkOut);
+    const parsedIn = parseBookingDateToUtcNoon(checkIn as string | Date);
+    const parsedOut = parseBookingDateToUtcNoon(checkOut as string | Date);
 
-    if (isNaN(checkInDate.getTime()) || isNaN(checkOutDate.getTime())) {
+    if (!parsedIn || !parsedOut) {
       return NextResponse.json(
         { success: false, message: "Invalid reservation dates." },
         { status: 400 }
       );
     }
 
-    // Normalize dates to start of day for accurate comparison
-    checkInDate.setHours(0, 0, 0, 0);
-    checkOutDate.setHours(0, 0, 0, 0);
+    const todayYMD = toVillaYMD(new Date());
 
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    if (checkInDate < today) {
+    if (!isAdmin && parsedIn.ymd < todayYMD) {
       return NextResponse.json(
         { success: false, message: "Check-in date cannot be in the past." },
         { status: 400 }
       );
     }
 
-    if (checkOutDate <= checkInDate) {
+    if (parsedOut.ymd <= parsedIn.ymd) {
       return NextResponse.json(
         { success: false, message: "Check-out date must be after check-in date." },
         { status: 400 }
       );
     }
 
-    const diffMs = checkOutDate.getTime() - checkInDate.getTime();
-    const nights = Math.max(1, Math.round(diffMs / (1000 * 60 * 60 * 24)));
+    const nights = calculateNightsYMD(parsedIn.ymd, parsedOut.ymd);
 
-    if (nights > 60) {
+    if (nights < 1) {
+      return NextResponse.json(
+        { success: false, message: "Stay must be at least 1 night." },
+        { status: 400 }
+      );
+    }
+
+    if (!isAdmin && nights > 60) {
       return NextResponse.json(
         { success: false, message: "For long stays exceeding 60 nights, please contact Susantha directly." },
         { status: 400 }
       );
     }
 
-    const validRoomType: RoomType = ["double", "triple", "full"].includes(roomType) ? (roomType as RoomType) : "double";
+    const validRoomType: RoomType = isValidRoomType(roomType) ? roomType : "double";
+
+    // Look up live rate and name from Room collection
+    const roomDoc = await Room.findOne({ roomId: validRoomType }).lean().exec();
+    const fallbackMeta = getDefaultRoomMeta(validRoomType);
+    const ratePerNight =
+      roomDoc && typeof roomDoc.pricePerNight === "number"
+        ? roomDoc.pricePerNight
+        : fallbackMeta.pricePerNight;
+    const computedRoomName = roomDoc?.name || fallbackMeta.name;
+
+    const cleanGuests = Math.min(Math.max(Number(guests) || 2, 1), 12);
+    const autoTotalPrice = ratePerNight * nights;
+    const finalTotalPrice =
+      isAdmin &&
+      typeof requestedTotalPrice === "number" &&
+      Number.isFinite(requestedTotalPrice) &&
+      requestedTotalPrice >= 0
+        ? Math.round(requestedTotalPrice)
+        : autoTotalPrice;
+
+    const finalStatus: "pending" | "confirmed" =
+      isAdmin && requestedStatus === "pending"
+        ? "pending"
+        : isAdmin && requestedStatus === "confirmed"
+        ? "confirmed"
+        : isAdmin
+        ? "confirmed"
+        : "pending";
 
     // ─────────────────────────────────────────────────────────────
-    // INTELLIGENT ANTI-OVERBOOKING CHECK
+    // SERIALIZED ATOMIC ANTI-OVERBOOKING & ANTI-OVERLAP CHECK
     // ─────────────────────────────────────────────────────────────
-    const conflictingRoomTypes = getConflictingRoomTypes(validRoomType);
+    const result = await withBookingLock(async () => {
+      const existingConflict = await findConflictingBooking({
+        roomType: validRoomType,
+        checkInYMD: parsedIn.ymd,
+        checkOutYMD: parsedOut.ymd,
+      });
 
-    const existingConflict = await Booking.findOne({
-      status: { $in: ["confirmed", "pending"] },
-      roomType: { $in: conflictingRoomTypes },
-      checkIn: { $lt: checkOutDate },
-      checkOut: { $gt: checkInDate },
-    }).lean();
+      if (existingConflict) {
+        return {
+          conflict: true as const,
+          detail: existingConflict,
+        };
+      }
 
-    if (existingConflict) {
+      const newBooking = await Booking.create({
+        customerName: cleanName,
+        customerPhone: cleanPhone,
+        customerEmail: cleanEmail,
+        roomType: validRoomType,
+        roomName: sanitizeText(roomName, 80) || computedRoomName,
+        checkIn: parsedIn.date,
+        checkOut: parsedOut.date,
+        nights,
+        guests: cleanGuests,
+        totalPrice: finalTotalPrice,
+        currency: "USD",
+        status: finalStatus,
+        specialRequests: cleanRequests,
+      });
+
+      // Post-create verification to guard against concurrent writes across serverless workers
+      const raceConflict = await findConflictingBooking({
+        roomType: validRoomType,
+        checkInYMD: parsedIn.ymd,
+        checkOutYMD: parsedOut.ymd,
+        excludeBookingId: String(newBooking._id),
+      });
+
+      if (
+        raceConflict &&
+        raceConflict.createdAt &&
+        newBooking.createdAt &&
+        raceConflict.createdAt.getTime() <= newBooking.createdAt.getTime()
+      ) {
+        await Booking.findByIdAndDelete(newBooking._id).exec();
+        return {
+          conflict: true as const,
+          detail: raceConflict,
+        };
+      }
+
+      return {
+        conflict: false as const,
+        booking: newBooking,
+      };
+    });
+
+    if (result.conflict) {
       return NextResponse.json(
         {
           success: false,
           conflict: true,
-          message:
-            validRoomType === "full"
-              ? "The villa already has rooms reserved during these dates. Please choose other dates."
-              : "This room is already reserved for the selected dates. Please choose another date or room.",
+          message: buildConflictMessage(validRoomType, result.detail, isAdmin),
         },
         { status: 409 }
       );
     }
 
-    let ratePerNight = 20;
-    let computedRoomName = "Double Room with Mountain View";
-    if (validRoomType === "triple") {
-      ratePerNight = 23;
-      computedRoomName = "Spacious Triple Bedroom";
-    } else if (validRoomType === "full") {
-      ratePerNight = 60;
-      computedRoomName = "Full Bungalow Exclusive Stay";
-    }
-
-    const cleanGuests = Math.min(Math.max(Number(guests) || 2, 1), 12);
-    const totalPrice = ratePerNight * nights;
-
-    const newBooking = await Booking.create({
-      customerName: cleanName,
-      customerPhone: cleanPhone,
-      customerEmail: cleanEmail,
-      roomType: validRoomType,
-      roomName: sanitizeText(roomName, 80) || computedRoomName,
-      checkIn: checkInDate,
-      checkOut: checkOutDate,
-      nights,
-      guests: cleanGuests,
-      totalPrice,
-      currency: "USD",
-      status: "pending",
-      specialRequests: cleanRequests,
-    });
+    const newBooking = result.booking;
 
     return NextResponse.json({
       success: true,
-      message: "Your reservation request has been received. Susantha will confirm your stay.",
+      message: isAdmin
+        ? "Manual reservation added with overlap protection."
+        : "Your reservation request has been received. Susantha will confirm your stay.",
       booking: {
         _id: newBooking._id,
         customerName: newBooking.customerName,
+        customerPhone: newBooking.customerPhone,
+        customerEmail: newBooking.customerEmail,
+        roomType: newBooking.roomType,
         roomName: newBooking.roomName,
         checkIn: newBooking.checkIn,
         checkOut: newBooking.checkOut,
@@ -248,10 +314,14 @@ export async function POST(req: NextRequest) {
         totalPrice: newBooking.totalPrice,
         currency: newBooking.currency,
         status: newBooking.status,
+        specialRequests: newBooking.specialRequests,
       },
     });
-  } catch (error: any) {
+  } catch (error: unknown) {
     const message = safeErrorMessage(error, "Failed to submit reservation. Please try again.");
-    return NextResponse.json({ success: false, message }, { status: 500 });
+    return NextResponse.json(
+      { success: false, message },
+      { status: isDatabaseUnavailableError(error) ? 503 : 500 }
+    );
   }
 }

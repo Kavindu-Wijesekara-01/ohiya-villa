@@ -257,6 +257,7 @@ export default function GallerySection({ onOpenPhoto }: GallerySectionProps) {
                 fill
                 sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
                 loading="lazy"
+                unoptimized={item.src.startsWith("data:") || item.src.startsWith("/uploads/")}
                 className="object-cover group-hover:scale-106 transition-transform duration-700 ease-out"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/15 to-transparent opacity-65 group-hover:opacity-90 transition-opacity" />

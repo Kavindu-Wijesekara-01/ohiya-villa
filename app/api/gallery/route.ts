@@ -54,7 +54,15 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { src, title, subtitle, category, aspect, order, isVisible } = body;
 
-    const cleanSrc = sanitizeText(src, 300);
+    const rawSrc = typeof src === "string" ? src.trim() : "";
+    const isDataImage = /^data:image\/(?:jpeg|png|webp|avif);base64,[A-Za-z0-9+/=]+$/.test(rawSrc);
+    const isLocalAsset = /^\/(?:uploads|photos|images)\/[A-Za-z0-9._\-\/% ]+$/.test(rawSrc) && !rawSrc.includes("..");
+
+    const cleanSrc = isDataImage
+      ? rawSrc.slice(0, 3_000_000)
+      : isLocalAsset
+      ? sanitizeText(rawSrc, 300)
+      : "";
     const cleanTitle = sanitizeText(title, 100);
     const cleanSubtitle = subtitle ? sanitizeText(subtitle, 200) : "";
     const cleanCategory = ["scenery", "property", "rooms", "interior"].includes(category)
@@ -66,7 +74,7 @@ export async function POST(req: NextRequest) {
 
     if (!cleanSrc || !cleanTitle) {
       return NextResponse.json(
-        { success: false, message: "Image path and title are required." },
+        { success: false, message: "A valid uploaded image and title are required." },
         { status: 400 }
       );
     }

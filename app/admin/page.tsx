@@ -4,6 +4,13 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import {
+  calculateNightsYMD,
+  getDefaultRoomMeta,
+  rangesOverlapYMD,
+  toVillaYMD,
+  RoomType,
+} from "@/lib/bookingUtils";
+import {
   Calendar,
   Image as ImageIcon,
   MessageSquare,
@@ -111,6 +118,31 @@ export default function AdminPage() {
   const [bookingFilter, setBookingFilter] = useState<string>("all");
   const [bookingSearch, setBookingSearch] = useState("");
   const [reviewFilter, setReviewFilter] = useState<"pending" | "approved" | "all">("pending");
+  const [bookingActionError, setBookingActionError] = useState("");
+  const [bookingActionSuccess, setBookingActionSuccess] = useState("");
+
+  // Manual Booking Modal State
+  const [isManualBookingOpen, setIsManualBookingOpen] = useState(false);
+  const [isCreatingBooking, setIsCreatingBooking] = useState(false);
+  const [manualBookingError, setManualBookingError] = useState("");
+  const [manualBookedRanges, setManualBookedRanges] = useState<
+    Array<{ _id: string; checkIn: string; checkOut: string; checkInYMD?: string; checkOutYMD?: string; roomType: string }>
+  >([]);
+  const [loadingManualBooked, setLoadingManualBooked] = useState(false);
+  const [manualBooking, setManualBooking] = useState({
+    customerName: "",
+    customerPhone: "",
+    customerEmail: "",
+    roomType: "double" as RoomType,
+    checkIn: "",
+    checkOut: "",
+    guests: 2,
+    status: "confirmed" as "confirmed" | "pending",
+    useCustomPrice: false,
+    customPrice: 0,
+    sourceChannel: "Walk-in / Direct Call",
+    specialRequests: "",
+  });
 
   // Gallery Add Modal
   const [isAddPhotoOpen, setIsAddPhotoOpen] = useState(false);
@@ -143,9 +175,10 @@ export default function AdminPage() {
 
       const data = await res.json();
       if (res.ok && data.success) {
+        const uploadedUrl = data.url || data.filePath || "";
         setNewPhoto((prev) => ({
           ...prev,
-          src: data.url,
+          src: uploadedUrl,
           title: prev.title || file.name.replace(/\.[^/.]+$/, "").replace(/[-_]/g, " "),
         }));
       } else {
@@ -259,25 +292,179 @@ export default function AdminPage() {
     }
   };
 
+  // Fetch occupied dates whenever the Manual Booking modal is open or roomType changes
+  useEffect(() => {
+    if (!isManualBookingOpen) return;
+    let ignore = false;
+    setLoadingManualBooked(true);
+    fetch(`/api/bookings?bookedDates=true&roomType=${encodeURIComponent(manualBooking.roomType)}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (!ignore && data.success && Array.isArray(data.bookedRanges)) {
+          setManualBookedRanges(data.bookedRanges);
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!ignore) setLoadingManualBooked(false);
+      });
+    return () => {
+      ignore = true;
+    };
+  }, [isManualBookingOpen, manualBooking.roomType, refreshKey]);
+
+  const matchedManualRoom = rooms.find((r) => r.roomId === manualBooking.roomType);
+  const fallbackManualRoom = getDefaultRoomMeta(manualBooking.roomType);
+  const manualRoomMeta = {
+    name: matchedManualRoom?.name || fallbackManualRoom.name,
+    pricePerNight:
+      matchedManualRoom && typeof matchedManualRoom.pricePerNight === "number"
+        ? matchedManualRoom.pricePerNight
+        : fallbackManualRoom.pricePerNight,
+  };
+
+  const manualNights = (() => {
+    if (!manualBooking.checkIn || !manualBooking.checkOut) return 0;
+    const n = calculateNightsYMD(manualBooking.checkIn, manualBooking.checkOut);
+    return n > 0 ? n : 0;
+  })();
+
+  const manualAutoPrice = manualRoomMeta.pricePerNight * manualNights;
+
+  const manualOverlapConflict = (() => {
+    if (!manualBooking.checkIn || !manualBooking.checkOut || manualNights <= 0) return null;
+    for (const range of manualBookedRanges) {
+      const startYMD = range.checkInYMD || toVillaYMD(range.checkIn);
+      const endYMD = range.checkOutYMD || toVillaYMD(range.checkOut);
+      if (startYMD && endYMD && rangesOverlapYMD(manualBooking.checkIn, manualBooking.checkOut, startYMD, endYMD)) {
+        return { startYMD, endYMD, roomType: range.roomType };
+      }
+    }
+    return null;
+  })();
+
+  const openManualBookingModal = () => {
+    const todayYMD = toVillaYMD(new Date());
+    setManualBookingError("");
+    setManualBooking({
+      customerName: "",
+      customerPhone: "",
+      customerEmail: "",
+      roomType: "double",
+      checkIn: todayYMD,
+      checkOut: "",
+      guests: 2,
+      status: "confirmed",
+      useCustomPrice: false,
+      customPrice: 0,
+      sourceChannel: "Walk-in / Direct Call",
+      specialRequests: "",
+    });
+    setIsManualBookingOpen(true);
+  };
+
+  const handleCreateManualBooking = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setManualBookingError("");
+
+    if (!manualBooking.checkIn || !manualBooking.checkOut) {
+      setManualBookingError("Please select both check-in and check-out dates.");
+      return;
+    }
+    if (manualNights < 1) {
+      setManualBookingError("Check-out date must be after check-in date.");
+      return;
+    }
+    if (manualOverlapConflict) {
+      setManualBookingError(
+        `Dates overlap an existing ${manualOverlapConflict.roomType} reservation (${manualOverlapConflict.startYMD} to ${manualOverlapConflict.endYMD}).`
+      );
+      return;
+    }
+
+    setIsCreatingBooking(true);
+    try {
+      const combinedNotes = [
+        manualBooking.sourceChannel ? `[${manualBooking.sourceChannel}]` : "",
+        manualBooking.specialRequests.trim(),
+      ]
+        .filter(Boolean)
+        .join(" ");
+
+      const res = await fetch("/api/bookings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          customerName: manualBooking.customerName,
+          customerPhone: manualBooking.customerPhone,
+          customerEmail: manualBooking.customerEmail,
+          roomType: manualBooking.roomType,
+          roomName: manualRoomMeta.name,
+          checkIn: manualBooking.checkIn,
+          checkOut: manualBooking.checkOut,
+          guests: manualBooking.guests,
+          status: manualBooking.status,
+          totalPrice: manualBooking.useCustomPrice ? Number(manualBooking.customPrice) : undefined,
+          specialRequests: combinedNotes,
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setIsManualBookingOpen(false);
+        setBookingActionError("");
+        setBookingActionSuccess(
+          `Manual reservation for ${manualBooking.customerName} (${manualRoomMeta.name}: ${manualBooking.checkIn} to ${manualBooking.checkOut}) added cleanly.`
+        );
+        setTimeout(() => setBookingActionSuccess(""), 5000);
+        setActiveTab("bookings");
+        setRefreshKey((k) => k + 1);
+      } else {
+        setManualBookingError(data.message || "Could not create reservation. Please verify dates and details.");
+        // Refresh occupied dates if a conflict occurred
+        const refreshRes = await fetch(`/api/bookings?bookedDates=true&roomType=${encodeURIComponent(manualBooking.roomType)}`);
+        if (refreshRes.ok) {
+          const refreshData = await refreshRes.json();
+          if (refreshData.success && Array.isArray(refreshData.bookedRanges)) {
+            setManualBookedRanges(refreshData.bookedRanges);
+          }
+        }
+      }
+    } catch {
+      setManualBookingError("Network error while saving reservation. Please try again.");
+    } finally {
+      setIsCreatingBooking(false);
+    }
+  };
+
   // Update Booking Status
   const handleUpdateBookingStatus = async (id: string, status: "confirmed" | "cancelled") => {
+    setBookingActionError("");
+    setBookingActionSuccess("");
     try {
       const res = await fetch(`/api/bookings/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status }),
       });
-      if (res.ok) {
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setBookingActionSuccess(`Reservation marked as ${status}.`);
+        setTimeout(() => setBookingActionSuccess(""), 3500);
         setRefreshKey((k) => k + 1);
+      } else {
+        setBookingActionError(data.message || "Unable to update booking status.");
       }
     } catch (e) {
       console.error("Error updating booking:", e);
+      setBookingActionError("Connection error while updating booking status.");
     }
   };
 
   // Delete Booking
   const handleDeleteBooking = async (id: string) => {
     if (!confirm("Are you sure you want to delete this booking record?")) return;
+    setBookingActionError("");
     try {
       const res = await fetch(`/api/bookings/${id}`, { method: "DELETE" });
       if (res.ok) setRefreshKey((k) => k + 1);
@@ -759,8 +946,15 @@ export default function AdminPage() {
 
               <div className="flex flex-wrap gap-3 relative z-10">
                 <button
+                  onClick={openManualBookingModal}
+                  className="px-5 py-2.5 rounded-full bg-[#C58E47] hover:bg-[#A97633] text-white text-xs font-bold transition-all shadow-md inline-flex items-center gap-1.5"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Add Manual Booking</span>
+                </button>
+                <button
                   onClick={() => setActiveTab("bookings")}
-                  className="px-5 py-2.5 rounded-full bg-[#C58E47] hover:bg-[#A97633] text-white text-xs font-bold transition-all shadow-md"
+                  className="px-5 py-2.5 rounded-full bg-white/15 hover:bg-white/25 text-white text-xs font-bold transition-all border border-white/20"
                 >
                   Review Bookings
                 </button>
@@ -813,8 +1007,8 @@ export default function AdminPage() {
                           </span>
                         </div>
                         <div className="text-xs text-[#7B887E] mt-0.5">
-                          {b.roomName} • {new Date(b.checkIn).toLocaleDateString()} to{" "}
-                          {new Date(b.checkOut).toLocaleDateString()} ({b.nights} nights)
+                          {b.roomName} • {toVillaYMD(b.checkIn)} to{" "}
+                          {toVillaYMD(b.checkOut)} ({b.nights} nights)
                         </div>
                       </div>
 
@@ -840,9 +1034,9 @@ export default function AdminPage() {
         {/* TAB 2: BOOKINGS */}
         {activeTab === "bookings" && (
           <div className="space-y-6">
-            {/* Filter Bar */}
-            <div className="bg-white p-4 rounded-2xl border border-[#EAE5DC] flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
-              <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0">
+            {/* Filter Bar + Manual Booking Button */}
+            <div className="bg-white p-4 rounded-2xl border border-[#EAE5DC] flex flex-col md:flex-row md:items-center justify-between gap-3 shadow-xs">
+              <div className="flex items-center gap-2 overflow-x-auto pb-1 md:pb-0">
                 {["all", "pending", "confirmed", "cancelled"].map((st) => (
                   <button
                     key={st}
@@ -857,17 +1051,42 @@ export default function AdminPage() {
                 ))}
               </div>
 
-              <div className="relative">
-                <input
-                  type="text"
-                  placeholder="Search guest or phone..."
-                  value={bookingSearch}
-                  onChange={(e) => setBookingSearch(e.target.value)}
-                  className="bg-[#F8F9F7] border border-[#EAE5DC] rounded-xl pl-9 pr-4 py-2 text-xs text-[#1F2923] focus:outline-hidden focus:border-[#C58E47] w-full sm:w-64"
-                />
-                <Search className="w-3.5 h-3.5 text-[#7B887E] absolute left-3 top-3" />
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2.5">
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="Search guest or phone..."
+                    value={bookingSearch}
+                    onChange={(e) => setBookingSearch(e.target.value)}
+                    className="bg-[#F8F9F7] border border-[#EAE5DC] rounded-xl pl-9 pr-4 py-2 text-xs text-[#1F2923] focus:outline-hidden focus:border-[#C58E47] w-full sm:w-56"
+                  />
+                  <Search className="w-3.5 h-3.5 text-[#7B887E] absolute left-3 top-3" />
+                </div>
+
+                <button
+                  type="button"
+                  onClick={openManualBookingModal}
+                  className="px-4 py-2 rounded-xl bg-[#C58E47] hover:bg-[#A97633] text-white text-xs font-bold inline-flex items-center justify-center gap-1.5 shadow-xs transition-all whitespace-nowrap"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Add Manual Booking</span>
+                </button>
               </div>
             </div>
+
+            {bookingActionSuccess && (
+              <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold flex items-center gap-2">
+                <CheckCircle className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                <span>{bookingActionSuccess}</span>
+              </div>
+            )}
+
+            {bookingActionError && (
+              <div className="p-4 rounded-2xl bg-red-50 border border-red-200 text-red-800 text-xs font-semibold flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-red-600 flex-shrink-0" />
+                <span>{bookingActionError}</span>
+              </div>
+            )}
 
             {/* Bookings List */}
             {filteredBookings.length === 0 ? (
@@ -917,13 +1136,13 @@ export default function AdminPage() {
                         <div className="flex items-center justify-between">
                           <span className="font-medium">Check-In:</span>
                           <span className="font-semibold">
-                            {new Date(b.checkIn).toLocaleDateString()}
+                            {toVillaYMD(b.checkIn)}
                           </span>
                         </div>
                         <div className="flex items-center justify-between">
                           <span className="font-medium">Check-Out:</span>
                           <span className="font-semibold">
-                            {new Date(b.checkOut).toLocaleDateString()}
+                            {toVillaYMD(b.checkOut)}
                           </span>
                         </div>
                         <div className="flex items-center justify-between">
@@ -1156,7 +1375,13 @@ export default function AdminPage() {
                   className="bg-white rounded-2xl border border-[#EAE5DC] overflow-hidden shadow-xs flex flex-col justify-between group"
                 >
                   <div className="relative h-44 w-full bg-gray-100">
-                    <Image src={item.src} alt={item.title} fill className="object-cover" />
+                    <Image
+                      src={item.src}
+                      alt={item.title}
+                      fill
+                      unoptimized={item.src.startsWith("data:") || item.src.startsWith("/uploads/")}
+                      className="object-cover"
+                    />
                     {!item.isVisible && (
                       <div className="absolute inset-0 bg-black/60 flex items-center justify-center text-white text-xs font-bold gap-1">
                         <EyeOff className="w-4 h-4" />
@@ -1221,6 +1446,7 @@ export default function AdminPage() {
                             src={newPhoto.src}
                             alt="Uploaded photo preview"
                             fill
+                            unoptimized={newPhoto.src.startsWith("data:") || newPhoto.src.startsWith("/uploads/")}
                             className="object-cover"
                           />
                           <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
@@ -1744,6 +1970,355 @@ export default function AdminPage() {
                 </div>
               </div>
             )}
+          </div>
+        )}
+
+        {/* MANUAL BOOKING MODAL (WITH ANTI-OVERBOOKING & LIVE OVERLAP PROTECTION) */}
+        {isManualBookingOpen && (
+          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+            <div className="bg-white rounded-3xl max-w-2xl w-full p-6 sm:p-8 shadow-2xl border border-[#EAE5DC] my-8 max-h-[92vh] overflow-y-auto">
+              <div className="flex items-center justify-between pb-4 border-b border-[#EAE5DC] mb-5">
+                <div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-[#C58E47] block">
+                    Host Reservation Desk
+                  </span>
+                  <h4 className="font-serif text-xl font-bold text-[#243D2C]">
+                    Add Manual Booking
+                  </h4>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setIsManualBookingOpen(false)}
+                  className="p-1.5 rounded-full hover:bg-gray-100 text-[#7B887E] transition-colors"
+                >
+                  <XCircle className="w-6 h-6" />
+                </button>
+              </div>
+
+              <form onSubmit={handleCreateManualBooking} className="space-y-4">
+                {/* Room Choice */}
+                <div>
+                  <label className="block text-xs font-bold text-[#1F2923] mb-2">
+                    Select Accommodation *
+                  </label>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                    {(["double", "triple", "full"] as RoomType[]).map((rt) => {
+                      const dyn = rooms.find((r) => r.roomId === rt);
+                      const fb = getDefaultRoomMeta(rt);
+                      const rName = dyn?.name || fb.name;
+                      const rPrice = dyn && typeof dyn.pricePerNight === "number" ? dyn.pricePerNight : fb.pricePerNight;
+                      const active = manualBooking.roomType === rt;
+                      return (
+                        <button
+                          key={rt}
+                          type="button"
+                          onClick={() => setManualBooking((prev) => ({ ...prev, roomType: rt }))}
+                          className={`p-3 rounded-2xl border-2 text-left transition-all ${
+                            active
+                              ? "border-[#243D2C] bg-[#FAF9F5] shadow-xs"
+                              : "border-[#EAE5DC] bg-white hover:border-[#DFB775]"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-[#C58E47]">
+                              {rt === "full" ? "Entire Villa" : rt === "double" ? "Room 01" : "Room 02"}
+                            </span>
+                            <span className="text-xs font-bold text-[#243D2C]">${rPrice}/nt</span>
+                          </div>
+                          <div className="text-xs font-bold text-[#1F2923] line-clamp-1">
+                            {rName}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Live Occupied Dates Preview for Selected Room */}
+                <div className="p-3.5 rounded-2xl bg-[#F8F9F7] border border-[#EAE5DC] text-xs">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="font-bold text-[#243D2C] flex items-center gap-1.5">
+                      <Calendar className="w-3.5 h-3.5 text-[#C58E47]" />
+                      <span>Existing Occupied Dates ({manualRoomMeta.name})</span>
+                    </span>
+                    {loadingManualBooked && (
+                      <span className="text-[11px] text-[#C58E47] animate-pulse font-semibold">
+                        Checking calendar...
+                      </span>
+                    )}
+                  </div>
+                  {manualBookedRanges.length === 0 ? (
+                    <p className="text-[11px] text-emerald-700 font-medium">
+                      No upcoming reservations conflict with this option. All future dates are open.
+                    </p>
+                  ) : (
+                    <div className="flex flex-wrap gap-1.5 mt-1.5">
+                      {manualBookedRanges.map((range) => {
+                        const s = range.checkInYMD || toVillaYMD(range.checkIn);
+                        const e = range.checkOutYMD || toVillaYMD(range.checkOut);
+                        return (
+                          <span
+                            key={range._id}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-rose-50 border border-rose-200 text-rose-800 text-[11px] font-semibold"
+                          >
+                            <span>
+                              {s} to {e}
+                            </span>
+                            <span className="text-[10px] uppercase text-rose-500">({range.roomType})</span>
+                          </span>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* Dates */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-[#1F2923] mb-1">
+                      Check-In Date *
+                    </label>
+                    <input
+                      type="date"
+                      required
+                      value={manualBooking.checkIn}
+                      onChange={(e) =>
+                        setManualBooking((prev) => ({ ...prev, checkIn: e.target.value }))
+                      }
+                      className="w-full bg-[#F8F9F7] border border-[#EAE5DC] rounded-xl px-3.5 py-2 text-xs text-[#1F2923] focus:border-[#C58E47] focus:outline-hidden font-medium"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-[#1F2923] mb-1">
+                      Check-Out Date *
+                    </label>
+                    <input
+                      type="date"
+                      required
+                      min={manualBooking.checkIn || undefined}
+                      value={manualBooking.checkOut}
+                      onChange={(e) =>
+                        setManualBooking((prev) => ({ ...prev, checkOut: e.target.value }))
+                      }
+                      className="w-full bg-[#F8F9F7] border border-[#EAE5DC] rounded-xl px-3.5 py-2 text-xs text-[#1F2923] focus:border-[#C58E47] focus:outline-hidden font-medium"
+                    />
+                  </div>
+                </div>
+
+                {/* Real-time Overlap / Overbooking Alert */}
+                {manualOverlapConflict && (
+                  <div className="p-3.5 rounded-2xl bg-red-50 border border-red-300 text-red-800 text-xs font-semibold flex items-start gap-2">
+                    <AlertCircle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <span className="block font-bold">Date Overlap Detected (Blocked)</span>
+                      <span className="text-[11px] font-normal">
+                        These dates overlap an active {manualOverlapConflict.roomType} reservation ({manualOverlapConflict.startYMD} to {manualOverlapConflict.endYMD}). Same-day check-out and check-in is allowed, but nights cannot overlap.
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {manualBookingError && (
+                  <div className="p-3.5 rounded-2xl bg-red-50 border border-red-200 text-red-800 text-xs font-semibold flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 text-red-600 flex-shrink-0" />
+                    <span>{manualBookingError}</span>
+                  </div>
+                )}
+
+                {/* Guest Details */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-[#1F2923] mb-1">
+                      Guest Full Name *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. Nimal Perera"
+                      value={manualBooking.customerName}
+                      onChange={(e) =>
+                        setManualBooking((prev) => ({ ...prev, customerName: e.target.value }))
+                      }
+                      className="w-full bg-[#F8F9F7] border border-[#EAE5DC] rounded-xl px-3.5 py-2 text-xs text-[#1F2923] focus:border-[#C58E47] focus:outline-hidden"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-[#1F2923] mb-1">
+                      Contact Phone / WhatsApp *
+                    </label>
+                    <input
+                      type="tel"
+                      required
+                      placeholder="e.g. +94 77 123 4567"
+                      value={manualBooking.customerPhone}
+                      onChange={(e) =>
+                        setManualBooking((prev) => ({ ...prev, customerPhone: e.target.value }))
+                      }
+                      className="w-full bg-[#F8F9F7] border border-[#EAE5DC] rounded-xl px-3.5 py-2 text-xs text-[#1F2923] focus:border-[#C58E47] focus:outline-hidden"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-[#1F2923] mb-1">
+                      Email (Optional)
+                    </label>
+                    <input
+                      type="email"
+                      placeholder="guest@example.com"
+                      value={manualBooking.customerEmail}
+                      onChange={(e) =>
+                        setManualBooking((prev) => ({ ...prev, customerEmail: e.target.value }))
+                      }
+                      className="w-full bg-[#F8F9F7] border border-[#EAE5DC] rounded-xl px-3.5 py-2 text-xs text-[#1F2923] focus:border-[#C58E47] focus:outline-hidden"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-[#1F2923] mb-1">
+                      Guests
+                    </label>
+                    <input
+                      type="number"
+                      min={1}
+                      max={12}
+                      value={manualBooking.guests}
+                      onChange={(e) =>
+                        setManualBooking((prev) => ({
+                          ...prev,
+                          guests: Math.max(1, Number(e.target.value) || 1),
+                        }))
+                      }
+                      className="w-full bg-[#F8F9F7] border border-[#EAE5DC] rounded-xl px-3.5 py-2 text-xs text-[#1F2923] focus:border-[#C58E47] focus:outline-hidden"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-[#1F2923] mb-1">
+                      Booking Status
+                    </label>
+                    <select
+                      value={manualBooking.status}
+                      onChange={(e) =>
+                        setManualBooking((prev) => ({
+                          ...prev,
+                          status: e.target.value as "confirmed" | "pending",
+                        }))
+                      }
+                      className="w-full bg-[#F8F9F7] border border-[#EAE5DC] rounded-xl px-3.5 py-2 text-xs text-[#1F2923] focus:border-[#C58E47] focus:outline-hidden font-semibold"
+                    >
+                      <option value="confirmed">Confirmed (Blocks Dates)</option>
+                      <option value="pending">Pending (Holds Dates)</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Source & Total Rate */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-[#1F2923] mb-1">
+                      Booking Source
+                    </label>
+                    <select
+                      value={manualBooking.sourceChannel}
+                      onChange={(e) =>
+                        setManualBooking((prev) => ({ ...prev, sourceChannel: e.target.value }))
+                      }
+                      className="w-full bg-[#F8F9F7] border border-[#EAE5DC] rounded-xl px-3.5 py-2 text-xs text-[#1F2923] focus:border-[#C58E47] focus:outline-hidden"
+                    >
+                      <option value="Walk-in / Direct Call">Walk-in / Direct Call</option>
+                      <option value="WhatsApp Message">WhatsApp Message</option>
+                      <option value="Booking.com">Booking.com</option>
+                      <option value="Airbnb">Airbnb</option>
+                      <option value="Other Partner">Other Partner</option>
+                    </select>
+                  </div>
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block text-xs font-semibold text-[#1F2923]">
+                        Total Price ({manualNights} {manualNights === 1 ? "night" : "nights"})
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setManualBooking((prev) => ({
+                            ...prev,
+                            useCustomPrice: !prev.useCustomPrice,
+                            customPrice: !prev.useCustomPrice ? manualAutoPrice : prev.customPrice,
+                          }))
+                        }
+                        className="text-[11px] font-bold text-[#C58E47] hover:underline"
+                      >
+                        {manualBooking.useCustomPrice ? "Use Auto Rate" : "Custom Rate"}
+                      </button>
+                    </div>
+                    {manualBooking.useCustomPrice ? (
+                      <div className="relative">
+                        <span className="absolute left-3 top-2 text-xs font-bold text-[#7B887E]">$</span>
+                        <input
+                          type="number"
+                          min={0}
+                          value={manualBooking.customPrice}
+                          onChange={(e) =>
+                            setManualBooking((prev) => ({
+                              ...prev,
+                              customPrice: Number(e.target.value) || 0,
+                            }))
+                          }
+                          className="w-full bg-[#F8F9F7] border border-[#C58E47] rounded-xl pl-6 pr-3 py-2 text-xs font-bold text-[#243D2C]"
+                        />
+                      </div>
+                    ) : (
+                      <div className="bg-[#FAF9F5] border border-[#EAE5DC] rounded-xl px-3.5 py-2 text-xs font-bold text-[#243D2C] flex items-center justify-between">
+                        <span>${manualRoomMeta.pricePerNight} × {manualNights} nights</span>
+                        <span className="text-sm text-[#C58E47]">${manualAutoPrice}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-[#1F2923] mb-1">
+                    Notes / Special Requests (Optional)
+                  </label>
+                  <textarea
+                    rows={2}
+                    placeholder="e.g. Early morning train arrival, Horton Plains jeep needed..."
+                    value={manualBooking.specialRequests}
+                    onChange={(e) =>
+                      setManualBooking((prev) => ({ ...prev, specialRequests: e.target.value }))
+                    }
+                    className="w-full bg-[#F8F9F7] border border-[#EAE5DC] rounded-xl p-3 text-xs text-[#1F2923] focus:border-[#C58E47] focus:outline-hidden"
+                  />
+                </div>
+
+                <div className="flex items-center justify-end gap-2.5 pt-4 border-t border-[#EAE5DC]">
+                  <button
+                    type="button"
+                    onClick={() => setIsManualBookingOpen(false)}
+                    className="px-4 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-xs font-semibold text-[#4F6154]"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isCreatingBooking || Boolean(manualOverlapConflict) || manualNights < 1}
+                    className="px-5 py-2.5 rounded-xl bg-[#243D2C] hover:bg-[#192C1F] text-white text-xs font-bold shadow-xs disabled:opacity-50 flex items-center gap-1.5"
+                  >
+                    {isCreatingBooking ? (
+                      <>
+                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                        <span>Saving Booking...</span>
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle className="w-3.5 h-3.5 text-[#DFB775]" />
+                        <span>Save Manual Booking</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
           </div>
         )}
       </div>
