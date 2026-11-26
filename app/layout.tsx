@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Playfair_Display, Plus_Jakarta_Sans, Dancing_Script, Cinzel, Bodoni_Moda, Antonio } from "next/font/google";
 import ScrollObserver from "@/components/ScrollObserver";
+import PageLoader from "@/components/PageLoader";
 import "./globals.css";
 
 const playfair = Playfair_Display({
@@ -106,6 +107,7 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col bg-[#F8F9F7] text-[#1F2923] font-sans selection:bg-[#C58E47]/20 selection:text-[#243D2C]">
         {children}
+        <PageLoader />
         <ScrollObserver />
       </body>
     </html>

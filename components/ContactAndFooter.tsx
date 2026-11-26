@@ -337,6 +337,7 @@ export default function ContactAndFooter() {
         {/* ───────── Legal ───────── */}
         <div className="border-t border-[#233229] py-6 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs text-[#6B7A70]">
           <p>© 2026 Dawn Breezy Bungalow, Ohiya. All rights reserved.</p>
+          <p>Developed By KL Edits</p>
 
         </div>
       </div>

@@ -108,6 +108,22 @@ h1, h2, h3, .font-serif-heading {
    LUXURY SLOW EDITORIAL SCROLL-REVEAL ANIMATIONS
    ========================================================= */
 
+@keyframes heroFadeUp {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 42px, 0);
+  }
+  100% {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+.hero-fade-up {
+  animation: heroFadeUp var(--hero-dur, 1150ms) cubic-bezier(0.16, 1, 0.3, 1) var(--hero-delay, 0ms) both;
+  will-change: opacity, transform;
+}
+
 @keyframes smoothSectionReveal {
   0% {
     opacity: 0;
@@ -292,6 +308,7 @@ h1, h2, h3, .font-serif-heading {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .hero-fade-up,
   [data-sr],
   .scroll-reveal,
   .scroll-reveal-section,

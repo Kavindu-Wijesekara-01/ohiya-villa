@@ -228,11 +228,17 @@ export default function Hero() {
             </div>
 
             {/* Main Headline - Condensed Architectural Display with Signature Dancing Script Overlap */}
-            <h1 className="animate-in fade-in duration-700 slide-in-from-bottom-3 delay-100 flex flex-col items-center justify-center text-center max-w-4xl mx-auto px-2 mb-2.5 sm:mb-3.5">
-              <span className="font-antonio font-bold text-[3.85rem] sm:text-7xl md:text-8xl lg:text-9xl xl:text-[6.5rem] tracking-tight uppercase leading-[0.9] sm:leading-[0.88] text-white [text-shadow:0_4px_24px_rgba(0,0,0,0.85)] select-none relative z-0">
+            <h1 className="flex flex-col items-center justify-center text-center max-w-4xl mx-auto px-2 mb-2.5 sm:mb-3.5">
+              <span
+                className="hero-fade-up font-antonio font-bold text-[3.7rem] sm:text-7xl md:text-8xl lg:text-9xl xl:text-[6.5rem] tracking-tight uppercase leading-[0.9] sm:leading-[0.88] text-white [text-shadow:0_4px_24px_rgba(0,0,0,0.85)] select-none relative z-0"
+                style={{ "--hero-delay": "580ms", "--hero-dur": "1150ms" } as React.CSSProperties}
+              >
                 Wake Up Above
               </span>
-              <span className="font-dancing font-bold text-[4.5rem] sm:text-7xl md:text-8xl lg:text-9xl xl:text-[6.5rem] normal-case text-[#DFB775] [text-shadow:0_4px_18px_rgba(0,0,0,0.85),0_1px_3px_rgba(0,0,0,0.9)] leading-[1.0] sm:leading-[1.0] -mt-5 sm:-mt-6 md:-mt-8 lg:-mt-10 relative z-10 inline-block select-none">
+              <span
+                className="hero-fade-up font-dancing font-bold text-[4.4rem] sm:text-7xl md:text-8xl lg:text-9xl xl:text-[6.5rem] normal-case text-[#DFB775] [text-shadow:0_4px_18px_rgba(0,0,0,0.85),0_1px_3px_rgba(0,0,0,0.9)] leading-[1.0] sm:leading-[1.0] -mt-5 sm:-mt-6 md:-mt-8 lg:-mt-10 relative z-10 inline-block select-none"
+                style={{ "--hero-delay": "960ms", "--hero-dur": "1200ms" } as React.CSSProperties}
+              >
                 The Clouds
               </span>
             </h1>
