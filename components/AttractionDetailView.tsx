@@ -60,36 +60,15 @@ export default function AttractionDetailView({
 
   return (
     <div className="bg-[#F8F9F7] text-[#1F2923] min-h-screen pt-16 sm:pt-20">
-      {/* Breadcrumb Navigation Bar */}
+      {/* Back Navigation Bar */}
       <div className="bg-white border-b border-[#E2E6E3] sticky top-16 sm:top-20 z-30 shadow-2xs">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5 flex items-center justify-between">
-          <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-xs sm:text-sm text-[#7B887E]">
-            <Link
-              href="/"
-              className="hover:text-[#243D2C] font-medium transition-colors flex items-center gap-1"
-            >
-              <span>Home</span>
-            </Link>
-            <ChevronRight className="w-3.5 h-3.5 text-gray-400" />
-            <Link
-              href="/#nearby"
-              className="hover:text-[#243D2C] font-medium transition-colors"
-            >
-              <span>Nearby Attractions</span>
-            </Link>
-            <ChevronRight className="w-3.5 h-3.5 text-gray-400" />
-            <span className="text-[#243D2C] font-semibold truncate max-w-[140px] sm:max-w-none">
-              {attraction.name}
-            </span>
-          </nav>
-
+        <div className="max-w-7xl mx-auto px-3.5 sm:px-6 lg:px-8 py-2.5 sm:py-3 flex items-center justify-start">
           <Link
             href="/#nearby"
-            className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#243D2C] hover:text-[#C58E47] transition-colors bg-[#F8F9F7] px-3 py-1.5 rounded-lg border border-[#E2E6E3]"
+            className="inline-flex items-center gap-2 text-xs sm:text-sm font-semibold text-[#243D2C] hover:text-[#C58E47] hover:border-[#DFB775] transition-colors bg-[#F8F9F7] px-3.5 sm:px-4 py-2 rounded-xl border border-[#E2E6E3] min-h-[38px]"
           >
-            <ArrowLeft className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Back to All Attractions</span>
-            <span className="sm:hidden">Back</span>
+            <ArrowLeft className="w-4 h-4 shrink-0" />
+            <span>Back</span>
           </Link>
         </div>
       </div>
