@@ -14,10 +14,11 @@ import {
   Calendar as CalendarIcon,
 } from "lucide-react";
 import {
+  MAX_TRIPLE_ROOMS,
   RoomType,
-  getConflictingRoomTypes,
   getDefaultRoomMeta,
   isNightInRangeYMD,
+  normalizeRoomCounts,
   toVillaYMD,
 } from "@/lib/bookingUtils";
 
@@ -31,6 +32,8 @@ export interface AdminCalendarBooking {
   specialRequests?: string;
   roomType: string;
   roomName: string;
+  doubleRooms?: number;
+  tripleRooms?: number;
   checkIn: string;
   checkOut: string;
   nights: number;
@@ -40,7 +43,7 @@ export interface AdminCalendarBooking {
 }
 
 interface AdminRoomConfig {
-  roomId: RoomType;
+  roomId: CalendarUnitId;
   roomNumber?: string;
   name: string;
   pricePerNight: number;
@@ -63,7 +66,8 @@ interface DayStatusInfo {
   booking: AdminCalendarBooking | null;
 }
 
-const ROOM_IDS: RoomType[] = ["double", "triple", "full"];
+type CalendarUnitId = "double" | "triple" | "full";
+const ROOM_IDS: CalendarUnitId[] = ["double", "triple", "full"];
 const WEEKDAYS = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
 
 function formatYMD(year: number, month: number, day: number): string {
@@ -84,13 +88,13 @@ export default function AdminRoomCalendars({
   const [viewMonth, setViewMonth] = useState<Date>(
     () => new Date(now.getFullYear(), now.getMonth(), 1)
   );
-  const [selectedDates, setSelectedDates] = useState<Record<RoomType, string>>({
+  const [selectedDates, setSelectedDates] = useState<Record<CalendarUnitId, string>>({
     double: "",
     triple: "",
     full: "",
   });
   const [listFilterByRoom, setListFilterByRoom] = useState<
-    Record<RoomType, "confirmed" | "pending">
+    Record<CalendarUnitId, "confirmed" | "pending">
   >({
     double: "confirmed",
     triple: "confirmed",
@@ -137,21 +141,64 @@ export default function AdminRoomCalendars({
   );
 
   const getDayStatus = (roomId: RoomType, dateYMD: string): DayStatusInfo => {
-    const conflictingTypes = getConflictingRoomTypes(roomId);
-    const matching = activeBookings.filter(
-      (b) =>
-        conflictingTypes.includes(b.roomType as RoomType) &&
-        isNightInRangeYMD(dateYMD, b.inYMD, b.outYMD)
+    const onDate = activeBookings.filter((b) =>
+      isNightInRangeYMD(dateYMD, b.inYMD, b.outYMD)
     );
+
+    const matching = onDate.filter((b) => {
+      const counts = normalizeRoomCounts({
+        roomType: b.roomType,
+        doubleRooms: b.doubleRooms,
+        tripleRooms: b.tripleRooms,
+      });
+      if (roomId === "double") return counts.doubleRooms > 0;
+      if (roomId === "triple") return counts.tripleRooms > 0;
+      return counts.doubleRooms > 0 || counts.tripleRooms > 0;
+    });
+
+    if (roomId === "triple") {
+      const tripleUsed = matching.reduce(
+        (sum, b) =>
+          sum +
+          normalizeRoomCounts({
+            roomType: b.roomType,
+            doubleRooms: b.doubleRooms,
+            tripleRooms: b.tripleRooms,
+          }).tripleRooms,
+        0
+      );
+      if (tripleUsed >= MAX_TRIPLE_ROOMS) {
+        const directConfirmed = matching.find(
+          (b) => (b.roomType === "triple" || b.roomType === "custom") && b.status === "confirmed"
+        );
+        if (directConfirmed) return { kind: "confirmed", booking: directConfirmed };
+        const directPending = matching.find(
+          (b) => (b.roomType === "triple" || b.roomType === "custom") && b.status === "pending"
+        );
+        if (directPending) return { kind: "pending", booking: directPending };
+        const conflictConfirmed = matching.find((b) => b.status === "confirmed");
+        if (conflictConfirmed) return { kind: "conflict-confirmed", booking: conflictConfirmed };
+        const conflictPending = matching.find((b) => b.status === "pending");
+        if (conflictPending) return { kind: "conflict-pending", booking: conflictPending };
+      } else if (tripleUsed > 0) {
+        // 1 of 2 triple rooms occupied -> show as pending/partial hold so admin knows 1 triple remains
+        const holder = matching[0];
+        return {
+          kind: holder.status === "confirmed" ? "conflict-confirmed" : "conflict-pending",
+          booking: holder,
+        };
+      }
+      return { kind: "available", booking: null };
+    }
 
     // Prioritize direct confirmed > direct pending > shared conflict confirmed > shared conflict pending
     const directConfirmed = matching.find(
-      (b) => b.roomType === roomId && b.status === "confirmed"
+      (b) => (b.roomType === roomId || (roomId === "double" && b.roomType === "custom")) && b.status === "confirmed"
     );
     if (directConfirmed) return { kind: "confirmed", booking: directConfirmed };
 
     const directPending = matching.find(
-      (b) => b.roomType === roomId && b.status === "pending"
+      (b) => (b.roomType === roomId || (roomId === "double" && b.roomType === "custom")) && b.status === "pending"
     );
     if (directPending) return { kind: "pending", booking: directPending };
 

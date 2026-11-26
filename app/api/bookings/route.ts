@@ -5,10 +5,14 @@ import Room from "@/models/Room";
 import { isAuthenticatedAdmin } from "@/lib/auth";
 import { sanitizeText, isValidEmail, isValidPhone, safeErrorMessage, isDatabaseUnavailableError } from "@/lib/sanitize";
 import {
+  calculateNightlyRate,
   calculateNightsYMD,
-  getConflictingRoomTypes,
+  deriveRoomTypeFromSelection,
+  formatRoomSelectionName,
   getDefaultRoomMeta,
+  getMaxGuestsForSelection,
   isValidRoomType,
+  normalizeRoomCounts,
   parseBookingDateToUtcNoon,
   toVillaYMD,
   RoomType,
@@ -25,34 +29,38 @@ export async function GET(req: NextRequest) {
 
     const { searchParams } = new URL(req.url);
     const bookedDatesOnly = searchParams.get("bookedDates") === "true";
-    const rawRoomType = searchParams.get("roomType") || "double";
-    const roomType: RoomType = isValidRoomType(rawRoomType) ? rawRoomType : "double";
-
     // Public endpoint for occupied / booked dates on calendar
-    // Strictly projects only checkIn, checkOut, roomType to prevent any PII leakage
+    // Strictly projects only checkIn, checkOut, roomType, doubleRooms, tripleRooms to prevent any PII leakage
     if (bookedDatesOnly) {
-      const conflictingTypes = getConflictingRoomTypes(roomType);
       const yesterdayUtc = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
       const confirmedBookings = await Booking.find(
         {
           status: { $in: ["confirmed", "pending"] },
-          roomType: { $in: conflictingTypes },
           checkOut: { $gte: yesterdayUtc },
         },
-        "checkIn checkOut roomType"
+        "checkIn checkOut roomType doubleRooms tripleRooms"
       )
         .lean()
         .exec();
 
-      const bookedRanges = confirmedBookings.map((b) => ({
-        _id: b._id,
-        checkIn: b.checkIn,
-        checkOut: b.checkOut,
-        checkInYMD: toVillaYMD(b.checkIn as Date),
-        checkOutYMD: toVillaYMD(b.checkOut as Date),
-        roomType: b.roomType,
-      }));
+      const bookedRanges = confirmedBookings.map((b) => {
+        const counts = normalizeRoomCounts({
+          roomType: String(b.roomType || "double"),
+          doubleRooms: b.doubleRooms,
+          tripleRooms: b.tripleRooms,
+        });
+        return {
+          _id: b._id,
+          checkIn: b.checkIn,
+          checkOut: b.checkOut,
+          checkInYMD: toVillaYMD(b.checkIn as Date),
+          checkOutYMD: toVillaYMD(b.checkOut as Date),
+          roomType: b.roomType,
+          doubleRooms: counts.doubleRooms,
+          tripleRooms: counts.tripleRooms,
+        };
+      });
 
       return NextResponse.json({
         success: true,
@@ -111,6 +119,8 @@ export async function POST(req: NextRequest) {
       idOrPassport,
       roomType,
       roomName,
+      doubleRooms: rawDoubleRooms,
+      tripleRooms: rawTripleRooms,
       checkIn,
       checkOut,
       guests,
@@ -221,18 +231,47 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const validRoomType: RoomType = isValidRoomType(roomType) ? roomType : "double";
+    const hasExplicitCounts =
+      typeof rawDoubleRooms === "number" || typeof rawTripleRooms === "number";
+    if (
+      hasExplicitCounts &&
+      (Number(rawDoubleRooms) || 0) <= 0 &&
+      (Number(rawTripleRooms) || 0) <= 0
+    ) {
+      return NextResponse.json(
+        { success: false, message: "Please select at least 1 bedroom." },
+        { status: 400 }
+      );
+    }
 
-    // Look up live rate and name from Room collection
-    const roomDoc = await Room.findOne({ roomId: validRoomType }).lean().exec();
-    const fallbackMeta = getDefaultRoomMeta(validRoomType);
-    const ratePerNight =
-      roomDoc && typeof roomDoc.pricePerNight === "number"
-        ? roomDoc.pricePerNight
-        : fallbackMeta.pricePerNight;
-    const computedRoomName = roomDoc?.name || fallbackMeta.name;
+    const requestedRoomType: RoomType = isValidRoomType(roomType) ? roomType : "double";
+    const selection = normalizeRoomCounts({
+      roomType: requestedRoomType,
+      doubleRooms: typeof rawDoubleRooms === "number" ? rawDoubleRooms : undefined,
+      tripleRooms: typeof rawTripleRooms === "number" ? rawTripleRooms : undefined,
+    });
+    const validRoomType = deriveRoomTypeFromSelection(selection);
 
-    const cleanGuests = Math.min(Math.max(Number(guests) || 2, 1), 12);
+    // Look up live rates from Room collection for double, triple, and full
+    const roomDocs = await Room.find({ roomId: { $in: ["double", "triple", "full"] } })
+      .lean()
+      .exec();
+    const getPrice = (id: "double" | "triple" | "full") => {
+      const doc = roomDocs.find((r) => r.roomId === id);
+      return doc && typeof doc.pricePerNight === "number"
+        ? doc.pricePerNight
+        : getDefaultRoomMeta(id).pricePerNight;
+    };
+
+    const ratePerNight = calculateNightlyRate(selection, {
+      doublePrice: getPrice("double"),
+      triplePrice: getPrice("triple"),
+      fullPrice: getPrice("full"),
+    });
+    const computedRoomName = formatRoomSelectionName(selection);
+
+    const maxGuests = isAdmin ? 12 : getMaxGuestsForSelection(selection);
+    const cleanGuests = Math.min(Math.max(Number(guests) || 1, 1), maxGuests);
     const autoTotalPrice = ratePerNight * nights;
     const finalTotalPrice =
       isAdmin &&
@@ -254,7 +293,7 @@ export async function POST(req: NextRequest) {
     // ─────────────────────────────────────────────────────────────
     const result = await withBookingLock(async () => {
       const existingConflict = await findConflictingBooking({
-        roomType: validRoomType,
+        selection,
         checkInYMD: parsedIn.ymd,
         checkOutYMD: parsedOut.ymd,
       });
@@ -275,6 +314,8 @@ export async function POST(req: NextRequest) {
         idOrPassportNormalized: normalizedIdOrPassport,
         roomType: validRoomType,
         roomName: sanitizeText(roomName, 80) || computedRoomName,
+        doubleRooms: selection.doubleRooms,
+        tripleRooms: selection.tripleRooms,
         checkIn: parsedIn.date,
         checkOut: parsedOut.date,
         nights,
@@ -287,7 +328,7 @@ export async function POST(req: NextRequest) {
 
       // Post-create verification to guard against concurrent writes across serverless workers
       const raceConflict = await findConflictingBooking({
-        roomType: validRoomType,
+        selection,
         checkInYMD: parsedIn.ymd,
         checkOutYMD: parsedOut.ymd,
         excludeBookingId: String(newBooking._id),
@@ -317,7 +358,7 @@ export async function POST(req: NextRequest) {
         {
           success: false,
           conflict: true,
-          message: buildConflictMessage(validRoomType, result.detail, isAdmin),
+          message: buildConflictMessage(selection, result.detail, isAdmin),
         },
         { status: 409 }
       );
@@ -339,6 +380,8 @@ export async function POST(req: NextRequest) {
         customerEmail: newBooking.customerEmail,
         roomType: newBooking.roomType,
         roomName: newBooking.roomName,
+        doubleRooms: newBooking.doubleRooms,
+        tripleRooms: newBooking.tripleRooms,
         checkIn: newBooking.checkIn,
         checkOut: newBooking.checkOut,
         nights: newBooking.nights,

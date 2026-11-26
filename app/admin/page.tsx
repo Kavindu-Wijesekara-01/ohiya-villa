@@ -5,9 +5,15 @@ import Image from "next/image";
 import Link from "next/link";
 import AdminRoomCalendars from "@/components/AdminRoomCalendars";
 import {
+  MAX_DOUBLE_ROOMS,
+  MAX_TRIPLE_ROOMS,
+  calculateNightlyRate,
   calculateNightsYMD,
+  deriveRoomTypeFromSelection,
+  formatRoomSelectionName,
   getDefaultRoomMeta,
-  rangesOverlapYMD,
+  hasCapacityConflictYMD,
+  isEntireVillaSelection,
   toVillaYMD,
   RoomType,
 } from "@/lib/bookingUtils";
@@ -132,7 +138,16 @@ export default function AdminPage() {
   const [isCreatingBooking, setIsCreatingBooking] = useState(false);
   const [manualBookingError, setManualBookingError] = useState("");
   const [manualBookedRanges, setManualBookedRanges] = useState<
-    Array<{ _id: string; checkIn: string; checkOut: string; checkInYMD?: string; checkOutYMD?: string; roomType: string }>
+    Array<{
+      _id: string;
+      checkIn: string;
+      checkOut: string;
+      checkInYMD?: string;
+      checkOutYMD?: string;
+      roomType: string;
+      doubleRooms?: number;
+      tripleRooms?: number;
+    }>
   >([]);
   const [loadingManualBooked, setLoadingManualBooked] = useState(false);
   const [manualBooking, setManualBooking] = useState({
@@ -141,7 +156,8 @@ export default function AdminPage() {
     idOrPassport: "",
     customerPhone: "",
     customerEmail: "",
-    roomType: "double" as RoomType,
+    doubleRooms: 1,
+    tripleRooms: 0,
     checkIn: "",
     checkOut: "",
     guests: 2,
@@ -301,12 +317,12 @@ export default function AdminPage() {
     }
   };
 
-  // Fetch occupied dates whenever the Manual Booking modal is open or roomType changes
+  // Fetch occupied dates whenever the Manual Booking modal is open
   useEffect(() => {
     if (!isManualBookingOpen) return;
     let ignore = false;
     setLoadingManualBooked(true);
-    fetch(`/api/bookings?bookedDates=true&roomType=${encodeURIComponent(manualBooking.roomType)}`)
+    fetch(`/api/bookings?bookedDates=true`)
       .then((res) => res.json())
       .then((data) => {
         if (!ignore && data.success && Array.isArray(data.bookedRanges)) {
@@ -320,16 +336,27 @@ export default function AdminPage() {
     return () => {
       ignore = true;
     };
-  }, [isManualBookingOpen, manualBooking.roomType, refreshKey]);
+  }, [isManualBookingOpen, refreshKey]);
 
-  const matchedManualRoom = rooms.find((r) => r.roomId === manualBooking.roomType);
-  const fallbackManualRoom = getDefaultRoomMeta(manualBooking.roomType);
+  const manualSelection = {
+    doubleRooms: manualBooking.doubleRooms,
+    tripleRooms: manualBooking.tripleRooms,
+  };
+  const manualIsEntireVilla = isEntireVillaSelection(manualSelection);
+  const manualDerivedRoomType = deriveRoomTypeFromSelection(manualSelection);
+  const getRoomPrice = (id: "double" | "triple" | "full") => {
+    const matched = rooms.find((r) => r.roomId === id);
+    return matched && typeof matched.pricePerNight === "number"
+      ? matched.pricePerNight
+      : getDefaultRoomMeta(id).pricePerNight;
+  };
   const manualRoomMeta = {
-    name: matchedManualRoom?.name || fallbackManualRoom.name,
-    pricePerNight:
-      matchedManualRoom && typeof matchedManualRoom.pricePerNight === "number"
-        ? matchedManualRoom.pricePerNight
-        : fallbackManualRoom.pricePerNight,
+    name: formatRoomSelectionName(manualSelection),
+    pricePerNight: calculateNightlyRate(manualSelection, {
+      doublePrice: getRoomPrice("double"),
+      triplePrice: getRoomPrice("triple"),
+      fullPrice: getRoomPrice("full"),
+    }),
   };
 
   const manualNights = (() => {
@@ -342,18 +369,24 @@ export default function AdminPage() {
 
   const manualOverlapConflict = (() => {
     if (!manualBooking.checkIn || !manualBooking.checkOut || manualNights <= 0) return null;
-    for (const range of manualBookedRanges) {
-      const startYMD = range.checkInYMD || toVillaYMD(range.checkIn);
-      const endYMD = range.checkOutYMD || toVillaYMD(range.checkOut);
-      if (startYMD && endYMD && rangesOverlapYMD(manualBooking.checkIn, manualBooking.checkOut, startYMD, endYMD)) {
-        return { startYMD, endYMD, roomType: range.roomType };
-      }
-    }
-    return null;
+    const conflict = hasCapacityConflictYMD({
+      requested: manualSelection,
+      checkInYMD: manualBooking.checkIn,
+      checkOutYMD: manualBooking.checkOut,
+      ranges: manualBookedRanges,
+    });
+    if (!conflict) return null;
+    return {
+      startYMD: conflict.checkInYMD || toVillaYMD(conflict.checkIn),
+      endYMD: conflict.checkOutYMD || toVillaYMD(conflict.checkOut),
+      roomType: conflict.roomType,
+    };
   })();
 
   const openManualBookingModal = (prefillRoom: RoomType = "double", prefillCheckIn?: string) => {
     const todayYMD = toVillaYMD(new Date());
+    const initDouble = prefillRoom === "double" || prefillRoom === "full" ? 1 : 0;
+    const initTriple = prefillRoom === "full" ? 2 : prefillRoom === "triple" ? 1 : 0;
     setManualBookingError("");
     setManualBooking({
       customerName: "",
@@ -361,7 +394,8 @@ export default function AdminPage() {
       idOrPassport: "",
       customerPhone: "",
       customerEmail: "",
-      roomType: prefillRoom,
+      doubleRooms: initDouble,
+      tripleRooms: initTriple,
       checkIn: prefillCheckIn || todayYMD,
       checkOut: "",
       guests: prefillRoom === "full" ? 6 : prefillRoom === "triple" ? 3 : 2,
@@ -411,8 +445,10 @@ export default function AdminPage() {
           idOrPassport: manualBooking.idOrPassport,
           customerPhone: manualBooking.customerPhone,
           customerEmail: manualBooking.customerEmail,
-          roomType: manualBooking.roomType,
+          roomType: manualDerivedRoomType,
           roomName: manualRoomMeta.name,
+          doubleRooms: manualBooking.doubleRooms,
+          tripleRooms: manualBooking.tripleRooms,
           checkIn: manualBooking.checkIn,
           checkOut: manualBooking.checkOut,
           guests: manualBooking.guests,
@@ -435,7 +471,7 @@ export default function AdminPage() {
       } else {
         setManualBookingError(data.message || "Could not create reservation. Please verify dates and details.");
         // Refresh occupied dates if a conflict occurred
-        const refreshRes = await fetch(`/api/bookings?bookedDates=true&roomType=${encodeURIComponent(manualBooking.roomType)}`);
+        const refreshRes = await fetch(`/api/bookings?bookedDates=true`);
         if (refreshRes.ok) {
           const refreshData = await refreshRes.json();
           if (refreshData.success && Array.isArray(refreshData.bookedRanges)) {
@@ -2075,40 +2111,118 @@ export default function AdminPage() {
               </div>
 
               <form onSubmit={handleCreateManualBooking} className="space-y-4">
-                {/* Room Choice */}
+                {/* Room Choice (Flexible Counts) */}
                 <div>
-                  <label className="block text-xs font-bold text-[#1F2923] mb-2">
-                    Select Accommodation *
-                  </label>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                    {(["double", "triple", "full"] as RoomType[]).map((rt) => {
-                      const dyn = rooms.find((r) => r.roomId === rt);
-                      const fb = getDefaultRoomMeta(rt);
-                      const rName = dyn?.name || fb.name;
-                      const rPrice = dyn && typeof dyn.pricePerNight === "number" ? dyn.pricePerNight : fb.pricePerNight;
-                      const active = manualBooking.roomType === rt;
-                      return (
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-xs font-bold text-[#1F2923]">
+                      Select Rooms *
+                    </label>
+                    {manualIsEntireVilla && (
+                      <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-[#C58E47] text-white">
+                        Entire Villa Rate (${manualRoomMeta.pricePerNight}/nt)
+                      </span>
+                    )}
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-2.5">
+                    <div className="p-3 rounded-2xl border border-[#EAE5DC] bg-[#FAF9F5] flex items-center justify-between">
+                      <div>
+                        <span className="text-xs font-bold text-[#243D2C] block">Double Bedroom</span>
+                        <span className="text-[10px] text-[#7B887E]">${getRoomPrice("double")}/nt • Max 1</span>
+                      </div>
+                      <div className="flex items-center gap-2">
                         <button
-                          key={rt}
                           type="button"
-                          onClick={() => setManualBooking((prev) => ({ ...prev, roomType: rt }))}
-                          className={`p-3 rounded-2xl border-2 text-left transition-all ${active
-                              ? "border-[#243D2C] bg-[#FAF9F5] shadow-xs"
-                              : "border-[#EAE5DC] bg-white hover:border-[#DFB775]"
-                            }`}
+                          disabled={manualBooking.doubleRooms <= 0 || manualBooking.doubleRooms + manualBooking.tripleRooms <= 1}
+                          onClick={() =>
+                            setManualBooking((prev) => ({
+                              ...prev,
+                              doubleRooms: Math.max(0, prev.doubleRooms - 1),
+                            }))
+                          }
+                          className="w-7 h-7 rounded-lg bg-white border border-[#EAE5DC] text-xs font-bold text-[#243D2C] disabled:opacity-40"
                         >
-                          <div className="flex items-center justify-between mb-1">
-                            <span className="text-[10px] font-bold uppercase tracking-wider text-[#C58E47]">
-                              {rt === "full" ? "Entire Villa" : rt === "double" ? "Room 01" : "Room 02"}
-                            </span>
-                            <span className="text-xs font-bold text-[#243D2C]">${rPrice}/nt</span>
-                          </div>
-                          <div className="text-xs font-bold text-[#1F2923] line-clamp-1">
-                            {rName}
-                          </div>
+                          -
                         </button>
-                      );
-                    })}
+                        <span className="w-5 text-center font-mono text-xs font-bold text-[#243D2C]">
+                          {manualBooking.doubleRooms}
+                        </span>
+                        <button
+                          type="button"
+                          disabled={manualBooking.doubleRooms >= MAX_DOUBLE_ROOMS}
+                          onClick={() =>
+                            setManualBooking((prev) => ({
+                              ...prev,
+                              doubleRooms: Math.min(MAX_DOUBLE_ROOMS, prev.doubleRooms + 1),
+                            }))
+                          }
+                          className="w-7 h-7 rounded-lg bg-white border border-[#EAE5DC] text-xs font-bold text-[#243D2C] disabled:opacity-40"
+                        >
+                          +
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="p-3 rounded-2xl border border-[#EAE5DC] bg-[#FAF9F5] flex items-center justify-between">
+                      <div>
+                        <span className="text-xs font-bold text-[#243D2C] block">Triple Bedroom</span>
+                        <span className="text-[10px] text-[#7B887E]">${getRoomPrice("triple")}/nt • Max 2</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          disabled={manualBooking.tripleRooms <= 0 || manualBooking.doubleRooms + manualBooking.tripleRooms <= 1}
+                          onClick={() =>
+                            setManualBooking((prev) => ({
+                              ...prev,
+                              tripleRooms: Math.max(0, prev.tripleRooms - 1),
+                            }))
+                          }
+                          className="w-7 h-7 rounded-lg bg-white border border-[#EAE5DC] text-xs font-bold text-[#243D2C] disabled:opacity-40"
+                        >
+                          -
+                        </button>
+                        <span className="w-5 text-center font-mono text-xs font-bold text-[#243D2C]">
+                          {manualBooking.tripleRooms}
+                        </span>
+                        <button
+                          type="button"
+                          disabled={manualBooking.tripleRooms >= MAX_TRIPLE_ROOMS}
+                          onClick={() =>
+                            setManualBooking((prev) => ({
+                              ...prev,
+                              tripleRooms: Math.min(MAX_TRIPLE_ROOMS, prev.tripleRooms + 1),
+                            }))
+                          }
+                          className="w-7 h-7 rounded-lg bg-white border border-[#EAE5DC] text-xs font-bold text-[#243D2C] disabled:opacity-40"
+                        >
+                          +
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {[
+                      { label: "1 Double", d: 1, t: 0 },
+                      { label: "1 Triple", d: 0, t: 1 },
+                      { label: "2 Triple", d: 0, t: 2 },
+                      { label: "1D + 1T", d: 1, t: 1 },
+                      { label: "Entire Villa (3)", d: 1, t: 2 },
+                    ].map((p) => (
+                      <button
+                        key={p.label}
+                        type="button"
+                        onClick={() =>
+                          setManualBooking((prev) => ({ ...prev, doubleRooms: p.d, tripleRooms: p.t }))
+                        }
+                        className={`px-2.5 py-1 rounded-lg text-[11px] font-bold border transition-colors ${
+                          manualBooking.doubleRooms === p.d && manualBooking.tripleRooms === p.t
+                            ? "bg-[#243D2C] text-white border-[#243D2C]"
+                            : "bg-white text-[#4F6154] border-[#EAE5DC] hover:border-[#C58E47]"
+                        }`}
+                      >
+                        {p.label}
+                      </button>
+                    ))}
                   </div>
                 </div>
 

@@ -7,9 +7,18 @@ import Navbar from "@/components/Navbar";
 import ContactAndFooter from "@/components/ContactAndFooter";
 import FloatingWhatsApp from "@/components/FloatingWhatsApp";
 import {
+  MAX_DOUBLE_ROOMS,
+  MAX_TRIPLE_ROOMS,
+  RoomSelection,
+  calculateNightlyRate,
+  deriveRoomTypeFromSelection,
   formatLocalDateYMD,
-  isNightInRangeYMD,
-  rangesOverlapYMD,
+  formatRoomSelectionName,
+  getMaxGuestsForSelection,
+  getTotalRoomCount,
+  getUsedRoomsOnNight,
+  hasCapacityConflictYMD,
+  isEntireVillaSelection,
   toVillaYMD,
 } from "@/lib/bookingUtils";
 import {
@@ -107,16 +116,37 @@ interface BookedRange {
   checkInYMD?: string;
   checkOutYMD?: string;
   roomType: string;
+  doubleRooms?: number;
+  tripleRooms?: number;
+}
+
+function getInitialRoomCounts(roomParam: string | null): RoomSelection {
+  if (roomParam === "triple") return { doubleRooms: 0, tripleRooms: 1 };
+  if (roomParam === "full") return { doubleRooms: MAX_DOUBLE_ROOMS, tripleRooms: MAX_TRIPLE_ROOMS };
+  return { doubleRooms: 1, tripleRooms: 0 };
 }
 
 function BookingContent() {
   const searchParams = useSearchParams();
-  const initialRoom = (searchParams?.get("room") as "double" | "triple" | "full") || "double";
+  const initialSelection = getInitialRoomCounts(searchParams?.get("room") ?? null);
 
   const [roomOptions, setRoomOptions] = useState<RoomOption[]>(ROOM_OPTIONS);
-  const [selectedRoom, setSelectedRoom] = useState<RoomOption>(
-    ROOM_OPTIONS.find((r) => r.id === initialRoom) || ROOM_OPTIONS[0]
-  );
+  const [doubleCount, setDoubleCount] = useState<number>(initialSelection.doubleRooms);
+  const [tripleCount, setTripleCount] = useState<number>(initialSelection.tripleRooms);
+
+  const selection: RoomSelection = {
+    doubleRooms: doubleCount,
+    tripleRooms: tripleCount,
+  };
+  const isEntireVilla = isEntireVillaSelection(selection);
+  const totalRoomsSelected = getTotalRoomCount(selection);
+  const selectionName = formatRoomSelectionName(selection);
+  const maxGuestsAllowed = getMaxGuestsForSelection(selection);
+  const derivedRoomType = deriveRoomTypeFromSelection(selection);
+
+  const doubleMeta = roomOptions.find((r) => r.id === "double") || ROOM_OPTIONS[0];
+  const tripleMeta = roomOptions.find((r) => r.id === "triple") || ROOM_OPTIONS[1];
+  const fullMeta = roomOptions.find((r) => r.id === "full") || ROOM_OPTIONS[2];
 
   // Dynamically load room pricing and package details from MongoDB
   useEffect(() => {
@@ -140,19 +170,6 @@ function BookingContent() {
               };
             })
           );
-          setSelectedRoom((current) => {
-            const dyn = data.rooms.find((r: any) => r.roomId === current.id);
-            if (!dyn) return current;
-            return {
-              ...current,
-              name: dyn.name || current.name,
-              subtitle: dyn.subtitle || current.subtitle,
-              pricePerNight: typeof dyn.pricePerNight === "number" ? dyn.pricePerNight : current.pricePerNight,
-              priceLabel: dyn.priceLabel || `$${dyn.pricePerNight}` || current.priceLabel,
-              capacity: dyn.capacity || current.capacity,
-              features: Array.isArray(dyn.features) && dyn.features.length > 0 ? dyn.features : current.features,
-            };
-          });
         }
       })
       .catch(() => {});
@@ -219,28 +236,31 @@ function BookingContent() {
   useEffect(() => {
     const roomParam = searchParams?.get("room");
     if (roomParam && ["double", "triple", "full"].includes(roomParam)) {
-      const found = roomOptions.find((r) => r.id === roomParam) || ROOM_OPTIONS.find((r) => r.id === roomParam);
-      if (found && found.id !== selectedRoom.id) {
-        setSelectedRoom(found);
-      }
+      const next = getInitialRoomCounts(roomParam);
+      setDoubleCount(next.doubleRooms);
+      setTripleCount(next.tripleRooms);
     }
-  }, [searchParams, roomOptions, selectedRoom.id]);
+  }, [searchParams]);
 
-  // Handle switching rooms
-  const handleRoomSelect = (opt: RoomOption) => {
-    setSelectedRoom(opt);
-    if (typeof window !== "undefined") {
-      const url = new URL(window.location.href);
-      url.searchParams.set("room", opt.id);
-      window.history.replaceState({}, "", url.toString());
-    }
+  // Clamp guest count whenever room capacity changes
+  useEffect(() => {
+    setGuestCount((prev) => Math.min(Math.max(1, prev), maxGuestsAllowed));
+  }, [maxGuestsAllowed]);
+
+  const applyRoomSelection = (nextDouble: number, nextTriple: number) => {
+    const clampedDouble = Math.min(MAX_DOUBLE_ROOMS, Math.max(0, nextDouble));
+    const clampedTriple = Math.min(MAX_TRIPLE_ROOMS, Math.max(0, nextTriple));
+    if (clampedDouble + clampedTriple === 0) return;
+    setDoubleCount(clampedDouble);
+    setTripleCount(clampedTriple);
+    setErrorMessage("");
   };
 
-  // Fetch booked ranges dynamically whenever selected room changes
-  const fetchBookedDates = useCallback(async (roomId: string) => {
+  // Fetch all active booked ranges dynamically
+  const fetchBookedDates = useCallback(async () => {
     setLoadingBookedDates(true);
     try {
-      const res = await fetch(`/api/bookings?bookedDates=true&roomType=${encodeURIComponent(roomId)}`);
+      const res = await fetch(`/api/bookings?bookedDates=true`);
       if (res.ok) {
         const data = await res.json();
         if (data.success && Array.isArray(data.bookedRanges)) {
@@ -255,10 +275,8 @@ function BookingContent() {
   }, []);
 
   useEffect(() => {
-    if (selectedRoom?.id) {
-      fetchBookedDates(selectedRoom.id);
-    }
-  }, [selectedRoom.id, fetchBookedDates]);
+    fetchBookedDates();
+  }, [fetchBookedDates]);
 
   // Normalize date helper
   const normalizeDate = (d: Date) => {
@@ -267,18 +285,17 @@ function BookingContent() {
     return copy;
   };
 
-  // Determine if a night is occupied in MongoDB using villa calendar dates (YYYY-MM-DD)
+  // Determine if a night lacks capacity for the currently selected room combination
   const isNightBooked = useCallback(
     (targetDate: Date) => {
       const targetYMD = formatLocalDateYMD(targetDate);
-      return bookedRanges.some((range) => {
-        const startYMD = range.checkInYMD || toVillaYMD(range.checkIn);
-        const endYMD = range.checkOutYMD || toVillaYMD(range.checkOut);
-        if (!startYMD || !endYMD) return false;
-        return isNightInRangeYMD(targetYMD, startYMD, endYMD);
-      });
+      const used = getUsedRoomsOnNight(targetYMD, bookedRanges);
+      return (
+        used.doubleRooms + doubleCount > MAX_DOUBLE_ROOMS ||
+        used.tripleRooms + tripleCount > MAX_TRIPLE_ROOMS
+      );
     },
-    [bookedRanges]
+    [bookedRanges, doubleCount, tripleCount]
   );
 
   // Validation rules for check-in
@@ -292,7 +309,7 @@ function BookingContent() {
     [isNightBooked]
   );
 
-  // Validation rules for check-out (strict anti-overlap)
+  // Validation rules for check-out (strict anti-overlap across room capacity)
   const isCheckOutDisabled = useCallback(
     (targetDate: Date, overrideCheckIn?: Date | null) => {
       const effectiveIn = overrideCheckIn !== undefined ? overrideCheckIn : checkInDate;
@@ -304,15 +321,17 @@ function BookingContent() {
       // Check-out must be strictly after check-in
       if (outYMD <= inYMD) return true;
 
-      // Must not overlap any occupied range [startYMD, endYMD)
-      return bookedRanges.some((range) => {
-        const startYMD = range.checkInYMD || toVillaYMD(range.checkIn);
-        const endYMD = range.checkOutYMD || toVillaYMD(range.checkOut);
-        if (!startYMD || !endYMD) return false;
-        return rangesOverlapYMD(inYMD, outYMD, startYMD, endYMD);
-      });
+      // Must not exceed remaining villa capacity on any night in [inYMD, outYMD)
+      return (
+        hasCapacityConflictYMD({
+          requested: { doubleRooms: doubleCount, tripleRooms: tripleCount },
+          checkInYMD: inYMD,
+          checkOutYMD: outYMD,
+          ranges: bookedRanges,
+        }) !== null
+      );
     },
-    [checkInDate, bookedRanges]
+    [checkInDate, bookedRanges, doubleCount, tripleCount]
   );
 
   // Auto-clear selected dates if switching rooms or loading live dates reveals a conflict
@@ -371,20 +390,28 @@ function BookingContent() {
   };
 
   // Total price calculation
-  const roomRate = selectedRoom.pricePerNight || 0;
+  const roomRate = calculateNightlyRate(selection, {
+    doublePrice: doubleMeta.pricePerNight ?? 20,
+    triplePrice: tripleMeta.pricePerNight ?? 23,
+    fullPrice: fullMeta.pricePerNight ?? 65,
+  });
   const totalPrice = roomRate * nights;
 
   // Form submission directly to MongoDB backend
   const handleSubmitBooking = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (totalRoomsSelected < 1) {
+      setErrorMessage("Please select at least 1 bedroom.");
+      return;
+    }
     if (!checkInDate || !checkOutDate) {
       setErrorMessage("Please select both your check-in and check-out dates.");
       return;
     }
 
     if (isCheckInDisabled(checkInDate) || isCheckOutDisabled(checkOutDate, checkInDate)) {
-      setErrorMessage("Selected dates overlap an existing booking for this room. Please choose available dates.");
-      fetchBookedDates(selectedRoom.id);
+      setErrorMessage("Selected dates do not have enough available rooms for your selection. Please adjust your rooms or dates.");
+      fetchBookedDates();
       return;
     }
 
@@ -408,8 +435,10 @@ function BookingContent() {
           idOrPassport,
           customerPhone,
           customerEmail,
-          roomType: selectedRoom.id,
-          roomName: selectedRoom.name,
+          roomType: derivedRoomType,
+          roomName: selectionName,
+          doubleRooms: doubleCount,
+          tripleRooms: tripleCount,
           checkIn: formatLocalDateYMD(checkInDate),
           checkOut: formatLocalDateYMD(checkOutDate),
           guests: guestCount,
@@ -423,11 +452,11 @@ function BookingContent() {
         if (idOrPassport.trim()) {
           setLookupQuery(idOrPassport.trim());
         }
-        fetchBookedDates(selectedRoom.id);
+        fetchBookedDates();
         window.scrollTo({ top: 0, behavior: "smooth" });
       } else {
         setErrorMessage(data.message || "Failed to complete reservation. Please try again or select other dates.");
-        fetchBookedDates(selectedRoom.id);
+        fetchBookedDates();
       }
     } catch {
       setErrorMessage("A connection error occurred. Please verify your internet connection and try again.");
@@ -1085,78 +1114,252 @@ function BookingContent() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-start">
         {/* Left Column: Room Chooser, Dual Calendars, Guest Form (8 Cols) */}
         <div className="lg:col-span-8 space-y-10 sm:space-y-12">
-          {/* STEP 1: SELECT ACCOMMODATION (Expanded Rich Cards) */}
+          {/* STEP 1: FLEXIBLE ROOM SELECTION (1 Double + 2 Triple Bedrooms) */}
           <section className="scroll-reveal">
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
               <div>
                 <span className="text-xs font-bold text-[#C58E47] uppercase tracking-wider">Step 1</span>
                 <h3 className="font-serif text-xl sm:text-2xl font-bold text-[#243D2C]">
-                  Choose Your Accommodation
+                  Choose Your Rooms
                 </h3>
               </div>
-              <span className="text-xs text-[#7B887E]">3 room options available</span>
+              <div className="flex items-center gap-2">
+                {isEntireVilla && (
+                  <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-[#C58E47] text-white text-[11px] font-bold uppercase tracking-wider shadow-xs">
+                    <Sparkles className="w-3 h-3" />
+                    Entire Villa
+                  </span>
+                )}
+                <span className="text-xs font-semibold text-[#243D2C] bg-[#FAF9F5] px-3 py-1 rounded-full border border-[#EAE5DC]">
+                  {totalRoomsSelected} of 3 Rooms Selected
+                </span>
+              </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              {roomOptions.map((opt) => {
-                const isSelected = selectedRoom.id === opt.id;
+            {/* Quick Combination Presets */}
+            <div className="flex flex-wrap items-center gap-2 mb-4">
+              {[
+                { label: "1 Double", d: 1, t: 0 },
+                { label: "1 Triple", d: 0, t: 1 },
+                { label: "2 Triple", d: 0, t: 2 },
+                { label: "1 Double + 1 Triple", d: 1, t: 1 },
+                { label: "Entire Villa (All 3 Rooms)", d: 1, t: 2 },
+              ].map((preset) => {
+                const active = doubleCount === preset.d && tripleCount === preset.t;
                 return (
-                  <div
-                    key={opt.id}
-                    onClick={() => handleRoomSelect(opt)}
-                    className={`editorial-card cursor-pointer rounded-[26px] p-4 sm:p-5 border-2 flex flex-col justify-between group ${
-                      isSelected
-                        ? "bg-gradient-to-b from-[#FAF7F0] to-white border-[#243D2C] shadow-xl ring-4 ring-[#C58E47]/15"
-                        : "bg-white border-[#E6DFD3] hover:border-[#DFB775]"
+                  <button
+                    key={preset.label}
+                    type="button"
+                    onClick={() => applyRoomSelection(preset.d, preset.t)}
+                    className={`px-3 py-1.5 rounded-full text-xs font-bold transition-all cursor-pointer border ${
+                      active
+                        ? "bg-[#243D2C] text-white border-[#243D2C] shadow-xs"
+                        : "bg-white text-[#4F6154] border-[#EAE5DC] hover:border-[#C58E47] hover:text-[#243D2C]"
                     }`}
                   >
-                    <div>
-                      {/* Photo Thumbnail */}
-                      <div className="relative h-40 w-full rounded-2xl overflow-hidden mb-3.5 bg-stone-200 ring-1 ring-black/5">
-                        <Image
-                          src={opt.image}
-                          alt={opt.name}
-                          fill
-                          className="object-cover group-hover:scale-105 transition-transform duration-500 transform-gpu"
-                        />
-                        <div className="absolute top-2.5 right-2.5 px-2.5 py-1 rounded-full bg-black/75 text-white text-[11px] font-bold border border-white/15">
-                          {opt.priceLabel}
-                          {opt.pricePerNight && <span className="text-[9px] font-normal"> / night</span>}
-                        </div>
-                      </div>
-
-                      <div className="flex items-center justify-between gap-1 mb-1">
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-[#C58E47]">
-                          {opt.capacity}
-                        </span>
-                        {isSelected && (
-                          <span className="flex items-center gap-1 text-[10px] font-bold text-[#243D2C] bg-[#243D2C]/10 px-2 py-0.5 rounded-full">
-                            <Check className="w-3 h-3 text-[#243D2C]" />
-                            <span>Selected</span>
-                          </span>
-                        )}
-                      </div>
-
-                      <h4 className="font-serif text-base font-bold text-[#243D2C] line-clamp-1 mb-1">
-                        {opt.name}
-                      </h4>
-                      <p className="text-xs text-[#7B887E] line-clamp-2 leading-relaxed mb-3">
-                        {opt.subtitle}
-                      </p>
-                    </div>
-
-                    <div className="pt-3 border-t border-[#EAE5DC]/80 space-y-1 text-[11px] text-[#58685D]">
-                      {opt.features.slice(0, 3).map((f, idx) => (
-                        <div key={idx} className="flex items-center gap-1.5 truncate">
-                          <Check className="w-3 h-3 text-[#C58E47] flex-shrink-0" />
-                          <span className="truncate">{f}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+                    {preset.label}
+                  </button>
                 );
               })}
             </div>
+
+            {/* 2 Room Type Cards with Quantity Counters */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {/* Double Bedroom Card (Max 1) */}
+              <div
+                className={`editorial-card rounded-[26px] p-4 sm:p-5 border-2 flex flex-col justify-between transition-all ${
+                  doubleCount > 0
+                    ? "bg-gradient-to-b from-[#FAF7F0] to-white border-[#243D2C] shadow-lg ring-4 ring-[#C58E47]/15"
+                    : "bg-white border-[#E6DFD3] hover:border-[#DFB775]"
+                }`}
+              >
+                <div>
+                  <div className="relative h-40 w-full rounded-2xl overflow-hidden mb-3.5 bg-stone-200 ring-1 ring-black/5">
+                    <Image
+                      src={doubleMeta.image}
+                      alt={doubleMeta.name}
+                      fill
+                      className="object-cover"
+                    />
+                    <div className="absolute top-2.5 left-2.5 px-2.5 py-1 rounded-full bg-white/90 text-[#243D2C] text-[10px] font-bold uppercase tracking-wider">
+                      1 Room Available
+                    </div>
+                    <div className="absolute top-2.5 right-2.5 px-2.5 py-1 rounded-full bg-black/75 text-white text-[11px] font-bold border border-white/15">
+                      {doubleMeta.priceLabel}
+                      <span className="text-[9px] font-normal"> / night</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between gap-1 mb-1">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-[#C58E47]">
+                      Sleeps up to 2 Guests
+                    </span>
+                    {doubleCount > 0 && (
+                      <span className="flex items-center gap-1 text-[10px] font-bold text-[#243D2C] bg-[#243D2C]/10 px-2 py-0.5 rounded-full">
+                        <Check className="w-3 h-3 text-[#243D2C]" />
+                        <span>{doubleCount} Selected</span>
+                      </span>
+                    )}
+                  </div>
+
+                  <h4 className="font-serif text-base font-bold text-[#243D2C] mb-1">
+                    Double Bedroom
+                  </h4>
+                  <p className="text-xs text-[#7B887E] line-clamp-2 leading-relaxed mb-3">
+                    {doubleMeta.subtitle}
+                  </p>
+
+                  <div className="pt-3 border-t border-[#EAE5DC]/80 space-y-1 text-[11px] text-[#58685D] mb-4">
+                    {doubleMeta.features.slice(0, 3).map((f, idx) => (
+                      <div key={idx} className="flex items-center gap-1.5 truncate">
+                        <Check className="w-3 h-3 text-[#C58E47] flex-shrink-0" />
+                        <span className="truncate">{f}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Quantity Counter */}
+                <div className="p-3 rounded-2xl bg-[#FAF9F5] border border-[#EAE5DC] flex items-center justify-between">
+                  <div>
+                    <span className="text-xs font-bold text-[#243D2C] block">Quantity</span>
+                    <span className="text-[10px] text-[#7B887E]">Max 1 Double Bedroom</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      disabled={doubleCount <= 0 || totalRoomsSelected <= 1}
+                      onClick={() => applyRoomSelection(doubleCount - 1, tripleCount)}
+                      className="w-8 h-8 rounded-lg bg-white border border-[#EAE5DC] flex items-center justify-center text-sm font-bold text-[#243D2C] hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                      aria-label="Decrease Double Bedroom count"
+                    >
+                      -
+                    </button>
+                    <span className="w-6 text-center font-mono text-sm font-bold text-[#243D2C]">
+                      {doubleCount}
+                    </span>
+                    <button
+                      type="button"
+                      disabled={doubleCount >= MAX_DOUBLE_ROOMS}
+                      onClick={() => applyRoomSelection(doubleCount + 1, tripleCount)}
+                      className="w-8 h-8 rounded-lg bg-white border border-[#EAE5DC] flex items-center justify-center text-sm font-bold text-[#243D2C] hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                      aria-label="Increase Double Bedroom count"
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Triple Bedroom Card (Max 2) */}
+              <div
+                className={`editorial-card rounded-[26px] p-4 sm:p-5 border-2 flex flex-col justify-between transition-all ${
+                  tripleCount > 0
+                    ? "bg-gradient-to-b from-[#FAF7F0] to-white border-[#243D2C] shadow-lg ring-4 ring-[#C58E47]/15"
+                    : "bg-white border-[#E6DFD3] hover:border-[#DFB775]"
+                }`}
+              >
+                <div>
+                  <div className="relative h-40 w-full rounded-2xl overflow-hidden mb-3.5 bg-stone-200 ring-1 ring-black/5">
+                    <Image
+                      src={tripleMeta.image}
+                      alt={tripleMeta.name}
+                      fill
+                      className="object-cover"
+                    />
+                    <div className="absolute top-2.5 left-2.5 px-2.5 py-1 rounded-full bg-white/90 text-[#243D2C] text-[10px] font-bold uppercase tracking-wider">
+                      2 Rooms Available
+                    </div>
+                    <div className="absolute top-2.5 right-2.5 px-2.5 py-1 rounded-full bg-black/75 text-white text-[11px] font-bold border border-white/15">
+                      {tripleMeta.priceLabel}
+                      <span className="text-[9px] font-normal"> / room / night</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between gap-1 mb-1">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-[#C58E47]">
+                      Sleeps up to 3 Guests / Room
+                    </span>
+                    {tripleCount > 0 && (
+                      <span className="flex items-center gap-1 text-[10px] font-bold text-[#243D2C] bg-[#243D2C]/10 px-2 py-0.5 rounded-full">
+                        <Check className="w-3 h-3 text-[#243D2C]" />
+                        <span>{tripleCount} Selected</span>
+                      </span>
+                    )}
+                  </div>
+
+                  <h4 className="font-serif text-base font-bold text-[#243D2C] mb-1">
+                    Triple Bedroom
+                  </h4>
+                  <p className="text-xs text-[#7B887E] line-clamp-2 leading-relaxed mb-3">
+                    {tripleMeta.subtitle}
+                  </p>
+
+                  <div className="pt-3 border-t border-[#EAE5DC]/80 space-y-1 text-[11px] text-[#58685D] mb-4">
+                    {tripleMeta.features.slice(0, 3).map((f, idx) => (
+                      <div key={idx} className="flex items-center gap-1.5 truncate">
+                        <Check className="w-3 h-3 text-[#C58E47] flex-shrink-0" />
+                        <span className="truncate">{f}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Quantity Counter */}
+                <div className="p-3 rounded-2xl bg-[#FAF9F5] border border-[#EAE5DC] flex items-center justify-between">
+                  <div>
+                    <span className="text-xs font-bold text-[#243D2C] block">Quantity</span>
+                    <span className="text-[10px] text-[#7B887E]">Max 2 Triple Bedrooms</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      disabled={tripleCount <= 0 || totalRoomsSelected <= 1}
+                      onClick={() => applyRoomSelection(doubleCount, tripleCount - 1)}
+                      className="w-8 h-8 rounded-lg bg-white border border-[#EAE5DC] flex items-center justify-center text-sm font-bold text-[#243D2C] hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                      aria-label="Decrease Triple Bedroom count"
+                    >
+                      -
+                    </button>
+                    <span className="w-6 text-center font-mono text-sm font-bold text-[#243D2C]">
+                      {tripleCount}
+                    </span>
+                    <button
+                      type="button"
+                      disabled={tripleCount >= MAX_TRIPLE_ROOMS}
+                      onClick={() => applyRoomSelection(doubleCount, tripleCount + 1)}
+                      className="w-8 h-8 rounded-lg bg-white border border-[#EAE5DC] flex items-center justify-center text-sm font-bold text-[#243D2C] hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                      aria-label="Increase Triple Bedroom count"
+                    >
+                      +
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Entire Villa Special Condition Banner */}
+            {isEntireVilla && (
+              <div className="mt-4 p-4 rounded-2xl bg-gradient-to-r from-[#243D2C] to-[#1A2E21] text-white border border-[#DFB775]/40 shadow-md flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-start sm:items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-[#C58E47]/25 border border-[#DFB775]/40 flex items-center justify-center shrink-0">
+                    <Sparkles className="w-4 h-4 text-[#DFB775]" />
+                  </div>
+                  <div>
+                    <span className="text-xs font-bold uppercase tracking-wider text-[#DFB775] block">
+                      Entire Villa Exclusive Rate Applied
+                    </span>
+                    <p className="text-xs text-white/90">
+                      All 3 rooms selected (1 Double + 2 Triple Bedrooms) — exclusive whole-property access for up to 10 guests at{" "}
+                      <strong className="text-[#DFB775]">${roomRate}/night</strong>.
+                    </p>
+                  </div>
+                </div>
+                <span className="text-[11px] font-bold px-3 py-1 rounded-full bg-white/10 border border-white/20 shrink-0 self-start sm:self-center">
+                  3 / 3 Rooms
+                </span>
+              </div>
+            )}
           </section>
 
           {/* STEP 2: DUAL CALENDARS SIDE-BY-SIDE (BIGGER & MORE SPACIOUS) */}
@@ -1165,12 +1368,12 @@ function BookingContent() {
               <div>
                 <span className="text-xs font-bold text-[#C58E47] uppercase tracking-wider">Step 2</span>
                 <h3 className="font-serif text-xl sm:text-2xl font-bold text-[#243D2C]">
-                  Select Stay Dates ({selectedRoom.name})
+                  Select Stay Dates ({selectionName})
                 </h3>
                 <p className="text-xs text-[#7B887E] mt-0.5">
-                  {selectedRoom.id === "double" && "Room 01 (Double) • Booking this room does not block Triple Room dates"}
-                  {selectedRoom.id === "triple" && "Room 02 (Triple) • Booking this room does not block Double Room dates"}
-                  {selectedRoom.id === "full" && "Entire Villa Exclusive • Requires all bedrooms to be vacant"}
+                  {isEntireVilla
+                    ? "Entire Villa • Requires all 3 bedrooms (1 Double + 2 Triple) to be available"
+                    : `${totalRoomsSelected} ${totalRoomsSelected === 1 ? "room" : "rooms"} selected (${selectionName}) • Up to ${maxGuestsAllowed} guests`}
                 </p>
               </div>
               <div className="flex items-center gap-2 text-xs">
@@ -1322,8 +1525,9 @@ function BookingContent() {
                       </button>
                       <button
                         type="button"
-                        onClick={() => setGuestCount(Math.min(10, guestCount + 1))}
-                        className="w-8 h-8 rounded-lg bg-white border border-[#EAE5DC] flex items-center justify-center text-sm font-bold text-[#243D2C] hover:bg-gray-100 cursor-pointer"
+                        onClick={() => setGuestCount(Math.min(maxGuestsAllowed, guestCount + 1))}
+                        disabled={guestCount >= maxGuestsAllowed}
+                        className="w-8 h-8 rounded-lg bg-white border border-[#EAE5DC] flex items-center justify-center text-sm font-bold text-[#243D2C] hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
                         aria-label="Increase guest count"
                       >
                         +
@@ -1331,7 +1535,7 @@ function BookingContent() {
                     </div>
                   </div>
                   <span className="text-[10px] text-[#7B887E] mt-1 block">
-                    Total adults &amp; children in your group (1–10)
+                    Total adults &amp; children in your group (1–{maxGuestsAllowed})
                   </span>
                 </div>
               </div>
@@ -1449,16 +1653,48 @@ function BookingContent() {
             {/* Room Snapshot */}
             <div className="relative h-44 w-full rounded-2xl overflow-hidden mb-4 bg-gray-100">
               <Image
-                src={selectedRoom.image}
-                alt={selectedRoom.name}
+                src={
+                  isEntireVilla
+                    ? fullMeta.image
+                    : doubleCount === 0
+                    ? tripleMeta.image
+                    : doubleMeta.image
+                }
+                alt={selectionName}
                 fill
                 className="object-cover"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent flex items-end p-3.5">
-                <div className="text-white">
-                  <span className="text-xs font-bold block">{selectedRoom.name}</span>
-                  <span className="text-[10px] text-white/80">{selectedRoom.capacity}</span>
+              {isEntireVilla && (
+                <div className="absolute top-3 left-3 px-2.5 py-1 rounded-full bg-[#C58E47] text-white text-[10px] font-bold uppercase tracking-wider shadow-xs">
+                  Entire Villa
                 </div>
+              )}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-transparent flex items-end p-3.5">
+                <div className="text-white">
+                  <span className="text-xs font-bold block">{selectionName}</span>
+                  <span className="text-[10px] text-white/80">
+                    {totalRoomsSelected} {totalRoomsSelected === 1 ? "Room" : "Rooms"} • Up to {maxGuestsAllowed} Guests
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Selected Rooms Breakdown */}
+            <div className="p-3 bg-[#FAF9F5] rounded-xl border border-[#EAE5DC] mb-3 space-y-1.5 text-xs">
+              <div className="flex items-center justify-between">
+                <span className="text-[#7B887E]">Booking Type:</span>
+                <span className={`font-bold ${isEntireVilla ? "text-[#C58E47]" : "text-[#243D2C]"}`}>
+                  {isEntireVilla ? "Entire Villa" : "Custom Room Selection"}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-[#7B887E]">Total Rooms:</span>
+                <span className="font-bold text-[#243D2C]">
+                  {totalRoomsSelected} {totalRoomsSelected === 1 ? "Room" : "Rooms"}
+                  {doubleCount > 0 && tripleCount > 0
+                    ? ` (${doubleCount}D + ${tripleCount}T)`
+                    : ""}
+                </span>
               </div>
             </div>
 
@@ -1478,8 +1714,9 @@ function BookingContent() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => setGuestCount(Math.min(10, guestCount + 1))}
-                  className="w-7 h-7 rounded-lg bg-white border border-[#EAE5DC] flex items-center justify-center text-xs font-bold text-[#243D2C] hover:bg-gray-100"
+                  disabled={guestCount >= maxGuestsAllowed}
+                  onClick={() => setGuestCount(Math.min(maxGuestsAllowed, guestCount + 1))}
+                  className="w-7 h-7 rounded-lg bg-white border border-[#EAE5DC] flex items-center justify-center text-xs font-bold text-[#243D2C] hover:bg-gray-100 disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   +
                 </button>

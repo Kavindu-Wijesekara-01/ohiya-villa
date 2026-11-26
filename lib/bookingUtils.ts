@@ -1,25 +1,114 @@
-export type RoomType = "double" | "triple" | "full";
+export type RoomType = "double" | "triple" | "full" | "custom";
 
 export const VILLA_TIMEZONE = "Asia/Colombo";
+export const MAX_DOUBLE_ROOMS = 1;
+export const MAX_TRIPLE_ROOMS = 2;
+export const TOTAL_VILLA_ROOMS = MAX_DOUBLE_ROOMS + MAX_TRIPLE_ROOMS; // 3 rooms
+
+export interface RoomSelection {
+  doubleRooms: number;
+  tripleRooms: number;
+}
 
 export function isValidRoomType(value: unknown): value is RoomType {
-  return value === "double" || value === "triple" || value === "full";
+  return value === "double" || value === "triple" || value === "full" || value === "custom";
 }
 
 /**
- * Intelligent room conflict resolver:
- * - 'double' conflicts with other 'double' bookings AND 'full' villa bookings.
- * - 'triple' conflicts with other 'triple' bookings AND 'full' villa bookings.
- * - 'full' conflicts with ANY room booking ('double', 'triple', or 'full').
+ * Normalize legacy or explicit room counts into { doubleRooms, tripleRooms }
+ * clamped to the villa's physical inventory (1 Double, 2 Triple).
+ */
+export function normalizeRoomCounts(input: {
+  roomType?: string | null;
+  doubleRooms?: unknown;
+  tripleRooms?: unknown;
+}): RoomSelection {
+  const hasExplicitDouble =
+    typeof input.doubleRooms === "number" && Number.isFinite(input.doubleRooms);
+  const hasExplicitTriple =
+    typeof input.tripleRooms === "number" && Number.isFinite(input.tripleRooms);
+
+  if (hasExplicitDouble || hasExplicitTriple) {
+    const d = Math.min(
+      MAX_DOUBLE_ROOMS,
+      Math.max(0, Math.floor(hasExplicitDouble ? (input.doubleRooms as number) : 0))
+    );
+    const t = Math.min(
+      MAX_TRIPLE_ROOMS,
+      Math.max(0, Math.floor(hasExplicitTriple ? (input.tripleRooms as number) : 0))
+    );
+    if (d + t > 0) {
+      return { doubleRooms: d, tripleRooms: t };
+    }
+  }
+
+  if (input.roomType === "full") {
+    return { doubleRooms: MAX_DOUBLE_ROOMS, tripleRooms: MAX_TRIPLE_ROOMS };
+  }
+  if (input.roomType === "triple") {
+    return { doubleRooms: 0, tripleRooms: 1 };
+  }
+  if (input.roomType === "custom") {
+    return { doubleRooms: 1, tripleRooms: 1 };
+  }
+  return { doubleRooms: 1, tripleRooms: 0 };
+}
+
+export function isEntireVillaSelection(sel: RoomSelection): boolean {
+  return sel.doubleRooms === MAX_DOUBLE_ROOMS && sel.tripleRooms === MAX_TRIPLE_ROOMS;
+}
+
+export function getTotalRoomCount(sel: RoomSelection): number {
+  return sel.doubleRooms + sel.tripleRooms;
+}
+
+export function deriveRoomTypeFromSelection(sel: RoomSelection): RoomType {
+  if (isEntireVillaSelection(sel)) return "full";
+  if (sel.doubleRooms === 1 && sel.tripleRooms === 0) return "double";
+  if (sel.doubleRooms === 0 && sel.tripleRooms === 1) return "triple";
+  return "custom";
+}
+
+export function formatRoomSelectionName(sel: RoomSelection): string {
+  if (isEntireVillaSelection(sel)) {
+    return "Entire Villa";
+  }
+  const parts: string[] = [];
+  if (sel.doubleRooms > 0) {
+    parts.push(`${sel.doubleRooms} Double ${sel.doubleRooms === 1 ? "Bedroom" : "Bedrooms"}`);
+  }
+  if (sel.tripleRooms > 0) {
+    parts.push(`${sel.tripleRooms} Triple ${sel.tripleRooms === 1 ? "Bedroom" : "Bedrooms"}`);
+  }
+  return parts.length > 0 ? parts.join(" + ") : "1 Double Bedroom";
+}
+
+export function getMaxGuestsForSelection(sel: RoomSelection): number {
+  if (isEntireVillaSelection(sel)) return 10;
+  return Math.max(1, sel.doubleRooms * 2 + sel.tripleRooms * 3);
+}
+
+export function calculateNightlyRate(
+  sel: RoomSelection,
+  prices: { doublePrice: number; triplePrice: number; fullPrice: number }
+): number {
+  if (isEntireVillaSelection(sel)) {
+    return prices.fullPrice;
+  }
+  return sel.doubleRooms * prices.doublePrice + sel.tripleRooms * prices.triplePrice;
+}
+
+/**
+ * Legacy room conflict helper (retained for compatibility).
  */
 export function getConflictingRoomTypes(requestedRoom: RoomType): RoomType[] {
   if (requestedRoom === "double") {
-    return ["double", "full"];
+    return ["double", "full", "custom"];
   }
   if (requestedRoom === "triple") {
-    return ["triple", "full"];
+    return ["triple", "full", "custom"];
   }
-  return ["double", "triple", "full"];
+  return ["double", "triple", "full", "custom"];
 }
 
 const villaYmdFormatter = new Intl.DateTimeFormat("en-CA", {
@@ -103,12 +192,115 @@ export function isNightInRangeYMD(
   return nightYMD >= rangeInYMD && nightYMD < rangeOutYMD;
 }
 
+export interface OccupiedRangeLike {
+  checkIn?: Date | string;
+  checkOut?: Date | string;
+  checkInYMD?: string;
+  checkOutYMD?: string;
+  roomType?: string;
+  doubleRooms?: number;
+  tripleRooms?: number;
+}
+
+/**
+ * Compute how many Double and Triple bedrooms are already occupied on a specific night YYYY-MM-DD.
+ */
+export function getUsedRoomsOnNight(
+  nightYMD: string,
+  ranges: OccupiedRangeLike[]
+): RoomSelection {
+  let doubleRooms = 0;
+  let tripleRooms = 0;
+  for (const r of ranges) {
+    const startYMD = r.checkInYMD || (r.checkIn ? toVillaYMD(r.checkIn) : "");
+    const endYMD = r.checkOutYMD || (r.checkOut ? toVillaYMD(r.checkOut) : "");
+    if (!startYMD || !endYMD) continue;
+    if (isNightInRangeYMD(nightYMD, startYMD, endYMD)) {
+      const counts = normalizeRoomCounts({
+        roomType: r.roomType,
+        doubleRooms: r.doubleRooms,
+        tripleRooms: r.tripleRooms,
+      });
+      doubleRooms += counts.doubleRooms;
+      tripleRooms += counts.tripleRooms;
+    }
+  }
+  return { doubleRooms, tripleRooms };
+}
+
+/**
+ * Check whether a requested room selection fits within remaining villa capacity
+ * across every night of [checkInYMD, checkOutYMD).
+ */
+export function hasCapacityConflictYMD<T extends OccupiedRangeLike>(params: {
+  requested: RoomSelection;
+  checkInYMD: string;
+  checkOutYMD: string;
+  ranges: T[];
+}): T | null {
+  const { requested, checkInYMD, checkOutYMD, ranges } = params;
+  const overlapping = ranges.filter((r) => {
+    const startYMD = r.checkInYMD || (r.checkIn ? toVillaYMD(r.checkIn) : "");
+    const endYMD = r.checkOutYMD || (r.checkOut ? toVillaYMD(r.checkOut) : "");
+    return Boolean(startYMD && endYMD && rangesOverlapYMD(checkInYMD, checkOutYMD, startYMD, endYMD));
+  });
+
+  if (overlapping.length === 0) return null;
+
+  const checkPoints = new Set<string>([checkInYMD]);
+  for (const r of overlapping) {
+    const startYMD = r.checkInYMD || (r.checkIn ? toVillaYMD(r.checkIn) : "");
+    if (startYMD > checkInYMD && startYMD < checkOutYMD) {
+      checkPoints.add(startYMD);
+    }
+  }
+
+  for (const point of checkPoints) {
+    let usedDouble = 0;
+    let usedTriple = 0;
+    let firstBlocker: T | null = null;
+
+    for (const r of overlapping) {
+      const startYMD = r.checkInYMD || (r.checkIn ? toVillaYMD(r.checkIn) : "");
+      const endYMD = r.checkOutYMD || (r.checkOut ? toVillaYMD(r.checkOut) : "");
+      if (!isNightInRangeYMD(point, startYMD, endYMD)) continue;
+
+      const counts = normalizeRoomCounts({
+        roomType: r.roomType,
+        doubleRooms: r.doubleRooms,
+        tripleRooms: r.tripleRooms,
+      });
+      usedDouble += counts.doubleRooms;
+      usedTriple += counts.tripleRooms;
+      if (
+        !firstBlocker &&
+        ((requested.doubleRooms > 0 && counts.doubleRooms > 0) ||
+          (requested.tripleRooms > 0 && counts.tripleRooms > 0))
+      ) {
+        firstBlocker = r;
+      }
+    }
+
+    if (
+      usedDouble + requested.doubleRooms > MAX_DOUBLE_ROOMS ||
+      usedTriple + requested.tripleRooms > MAX_TRIPLE_ROOMS
+    ) {
+      return firstBlocker || overlapping[0];
+    }
+  }
+
+  return null;
+}
+
 export function getDefaultRoomMeta(roomType: RoomType): { name: string; pricePerNight: number } {
   if (roomType === "triple") {
     return { name: "Triple Room with Private Bathroom", pricePerNight: 23 };
   }
   if (roomType === "full") {
-    return { name: "Full Bungalow Exclusive Stay", pricePerNight: 65 };
+    return { name: "Entire Villa", pricePerNight: 65 };
+  }
+  if (roomType === "custom") {
+    return { name: "Custom Room Combination", pricePerNight: 43 };
   }
   return { name: "Double Room with Mountain View", pricePerNight: 20 };
 }

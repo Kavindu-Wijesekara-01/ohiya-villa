@@ -34,7 +34,7 @@ export async function GET(req: NextRequest) {
       ],
     })
       .select(
-        "_id customerName customerCountry idOrPassport roomType roomName checkIn checkOut nights guests totalPrice currency status specialRequests createdAt"
+        "_id customerName customerCountry idOrPassport roomType roomName doubleRooms tripleRooms checkIn checkOut nights guests totalPrice currency status specialRequests createdAt"
       )
       .sort({ createdAt: -1 })
       .limit(30)

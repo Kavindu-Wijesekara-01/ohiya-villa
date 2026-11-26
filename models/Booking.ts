@@ -7,8 +7,10 @@ export interface IBooking extends Document {
   customerCountry?: string;
   idOrPassport?: string;
   idOrPassportNormalized?: string;
-  roomType: "double" | "triple" | "full";
+  roomType: "double" | "triple" | "full" | "custom";
   roomName: string;
+  doubleRooms: number;
+  tripleRooms: number;
   checkIn: Date;
   checkOut: Date;
   nights: number;
@@ -32,10 +34,12 @@ const BookingSchema: Schema = new Schema(
     roomType: {
       type: String,
       required: true,
-      enum: ["double", "triple", "full"],
+      enum: ["double", "triple", "full", "custom"],
       default: "double",
     },
     roomName: { type: String, required: true },
+    doubleRooms: { type: Number, min: 0, max: 1, default: 0 },
+    tripleRooms: { type: Number, min: 0, max: 2, default: 0 },
     checkIn: { type: Date, required: true },
     checkOut: { type: Date, required: true },
     nights: { type: Number, required: true, min: 1, default: 1 },
@@ -56,7 +60,11 @@ const BookingSchema: Schema = new Schema(
 );
 
 // Prevent mongoose recompilation error in Next.js dev hot-reload while refreshing schema if new fields were added
-if (mongoose.models.Booking && !mongoose.models.Booking.schema.path("idOrPassportNormalized")) {
+if (
+  mongoose.models.Booking &&
+  (!mongoose.models.Booking.schema.path("idOrPassportNormalized") ||
+    !mongoose.models.Booking.schema.path("doubleRooms"))
+) {
   delete mongoose.models.Booking;
 }
 

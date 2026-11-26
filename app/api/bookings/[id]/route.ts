@@ -4,7 +4,7 @@ import connectToDatabase from "@/lib/mongodb";
 import Booking from "@/models/Booking";
 import { isAuthenticatedAdmin } from "@/lib/auth";
 import { sanitizeText, safeErrorMessage } from "@/lib/sanitize";
-import { isValidRoomType, toVillaYMD, RoomType } from "@/lib/bookingUtils";
+import { isValidRoomType, normalizeRoomCounts, toVillaYMD, RoomType } from "@/lib/bookingUtils";
 import {
   buildConflictMessage,
   findConflictingBooking,
@@ -45,13 +45,18 @@ export async function PATCH(
 
       const nextStatus = (allowedUpdates.status as string) || existing.status;
       const roomType: RoomType = isValidRoomType(existing.roomType) ? existing.roomType : "double";
+      const selection = normalizeRoomCounts({
+        roomType,
+        doubleRooms: existing.doubleRooms,
+        tripleRooms: existing.tripleRooms,
+      });
       const checkInYMD = toVillaYMD(existing.checkIn as Date);
       const checkOutYMD = toVillaYMD(existing.checkOut as Date);
 
       // Enforce anti-overbooking whenever a booking is kept or moved into an active state
       if (["pending", "confirmed"].includes(nextStatus) && checkInYMD && checkOutYMD) {
         const conflict = await findConflictingBooking({
-          roomType,
+          selection,
           checkInYMD,
           checkOutYMD,
           excludeBookingId: id,
